@@ -5,8 +5,7 @@ const cors = require('cors');
 require('dotenv').config();
 
 const app = express();
-app.use(cors({ origin: 'http://localhost:3000'})); // For development
-// app.use(cors({ origin: 'https://chulps.github.io/react-gh-pages/'})); // For production
+app.use(cors({ origin: 'https://chulps.github.io/react-gh-pages/'})); // For production
 
 app.use(express.json());
 
