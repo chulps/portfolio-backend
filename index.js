@@ -10,6 +10,10 @@ app.use(cors({ origin: 'https://chulps.github.io/react-gh-pages/'})); // For pro
 
 app.use(express.json());
 
+app.get('/', (req, res) => {
+  res.send('Hello, World! This is your Express server.');
+});
+
 app.post('/api/openai', async (req, res) => {
   try {
     const response = await axios.post(
