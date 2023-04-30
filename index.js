@@ -3,7 +3,7 @@ const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
 require('dotenv').config();
-
+dotenv.config();
 const app = express();
 app.use(cors({ origin: 'https://chulps.github.io/react-gh-pages/'})); // For production
 
