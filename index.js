@@ -11,10 +11,12 @@ app.use(cors());
 
 app.use(express.json());
 
+// root route
 app.get('/', (req, res) => {
   res.send('Hello, World! This is your Express server.');
 });
 
+// chuckgpt api route
 app.post('/api/openai', async (req, res) => {
   try {
     const response = await axios.post(
@@ -33,6 +35,7 @@ app.post('/api/openai', async (req, res) => {
   }
 });
 
+// covid api route
 app.get('/api/covid', async (req, res) => {
   try {
     const options = {
@@ -45,10 +48,14 @@ app.get('/api/covid', async (req, res) => {
     };
     const response = await axios.request(options);
     res.json(response.data);
+    console.log(res.json(response.data))
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
+
+console.log(process.env.COVID_URL);
+console.log(`${process.env.COVID_URL}`);
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
