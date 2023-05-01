@@ -28,7 +28,7 @@ app.post('/api/openai', async (req, res) => {
         },
       }
     );
-    res.json(response.data.choices[0].message.content);
+    res.json(response.data);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
