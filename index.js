@@ -33,5 +33,22 @@ app.post('/api/openai', async (req, res) => {
   }
 });
 
+app.get('/api/covid', async (req, res) => {
+  try {
+    const options = {
+      method: 'GET',
+      url: process.env.COVID_URL,
+      headers: {
+        'X-RapidAPI-Key': process.env.COVID_API_KEY,
+        'X-RapidAPI-Host': process.env.COVID_HOST,
+      },
+    };
+    const response = await axios.request(options);
+    res.json(response.data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
