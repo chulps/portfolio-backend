@@ -19,7 +19,7 @@ app.get('/', (req, res) => {
 app.post('/api/openai', async (req, res) => {
   try {
     const response = await axios.post(
-      process.env.OPENAI_API_URL,
+      `${process.env.OPENAI_API_URL}`,
       req.body,
       {
         headers: {
