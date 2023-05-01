@@ -37,10 +37,10 @@ app.get('/api/covid', async (req, res) => {
   try {
     const options = {
       method: 'GET',
-      url: process.env.COVID_URL,
+      url: `${process.env.COVID_URL}`,
       headers: {
-        'X-RapidAPI-Key': process.env.COVID_API_KEY,
-        'X-RapidAPI-Host': process.env.COVID_HOST,
+        'X-RapidAPI-Key': `${process.env.COVID_API_KEY}`,
+        'X-RapidAPI-Host': `${process.env.COVID_HOST}`,
       },
     };
     const response = await axios.request(options);
