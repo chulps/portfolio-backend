@@ -11,12 +11,12 @@ app.use(cors());
 
 app.use(express.json());
 
-// root route
+// api home route
 app.get('/', (req, res) => {
   res.send('Hello, World! This is your Express server.');
 });
 
-// chuckgpt api route
+// api route for openai
 app.post('/api/openai', async (req, res) => {
   try {
     const response = await axios.post(
@@ -35,27 +35,23 @@ app.post('/api/openai', async (req, res) => {
   }
 });
 
-// covid api route
+// api route for covid data
 app.get('/api/covid', async (req, res) => {
   try {
     const options = {
       method: 'GET',
-      url: `${process.env.COVID_URL}`,
+      url: process.env.COVID_URL,
       headers: {
-        'X-RapidAPI-Key': `${process.env.COVID_API_KEY}`,
-        'X-RapidAPI-Host': `${process.env.COVID_HOST}`,
+        'X-RapidAPI-Key': process.env.COVID_API_KEY,
+        'X-RapidAPI-Host': process.env.COVID_HOST,
       },
     };
     const response = await axios.request(options);
-    res.json(response.data);
-    console.log(res.json(response.data))
+    res.json(response.data.response);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
-
-console.log(process.env.COVID_URL);
-console.log(`${process.env.COVID_URL}`);
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
