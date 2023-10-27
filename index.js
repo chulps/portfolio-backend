@@ -2,21 +2,34 @@
 const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
+const mongoose = require('mongoose');
 const dotenv = require('dotenv');
+const authRoutes = require('./routes/auth-routes');
+
 dotenv.config();
 
 const app = express();
-
 app.use(cors());
-
 app.use(express.json());
+
+// Connect to MongoDB
+mongoose.connect(process.env.MONGODB_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+    useCreateIndex: true
+})
+.then(() => console.log('MongoDB connected!'))
+.catch(err => console.error('MongoDB connection error:', err));
+
+// Use authentication routes
+app.use('/auth', authRoutes);
 
 // api home route
 app.get('/', (req, res) => {
   res.send('Hello, World! This is your Express server.');
 });
 
-// api route for openai
+// api route for chuckgpt
 app.post('/api/openai', async (req, res) => {
   try {
     const response = await axios.post(
