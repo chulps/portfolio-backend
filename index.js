@@ -13,7 +13,7 @@ app.use(express.json());
 
 // api home route
 app.get('/', (req, res) => {
-  res.send('Hello, World! This is your Express server.');
+  res.send('Hello, World! This is the backend for Chucks portfolio. ');
 });
 
 // api route for openai
