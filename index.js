@@ -16,6 +16,31 @@ app.get('/', (req, res) => {
   res.send('Hello, World! This is the backend for Chucks portfolio. ');
 });
 
+// api route for weather data
+app.get('/api/weather', async (req, res) => {
+  try {
+    const { city } = req.query;
+    const url = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${process.env.OPEN_WEATHER_API_KEY}&units=metric`;
+    const response = await axios.get(url);
+    res.json(response.data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// api route for WeatherAPI data
+app.get('/api/weatherapi', async (req, res) => {
+  try {
+    const { city } = req.query;  // Assuming you pass city as a query parameter
+    const url = `http://api.weatherapi.com/v1/current.json?key=${process.env.WEATHER_API_KEY}&q=${city}`;
+    const response = await axios.get(url);
+    res.json(response.data);
+  } catch (error) {
+    console.error("Error fetching WeatherAPI data:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // api route for openai
 app.post('/api/openai', async (req, res) => {
   try {
