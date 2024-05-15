@@ -17,7 +17,7 @@ app.get('/', (req, res) => {
 });
 
 // api route for weather data
-app.get('/api/opnweather', async (req, res) => {
+app.get('/api/openweather', async (req, res) => {
   try {
     const { city } = req.query;
     const url = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${process.env.OPEN_WEATHER_API_KEY}&units=metric`;
