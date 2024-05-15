@@ -17,7 +17,7 @@ app.get('/', (req, res) => {
 });
 
 // api route for weather data
-app.get('/api/weather', async (req, res) => {
+app.get('/api/opnweather', async (req, res) => {
   try {
     const { city } = req.query;
     const url = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${process.env.OPEN_WEATHER_API_KEY}&units=metric`;
@@ -29,9 +29,9 @@ app.get('/api/weather', async (req, res) => {
 });
 
 // api route for WeatherAPI data
-app.get('/api/weatherapi', async (req, res) => {
+app.get('/api/weather', async (req, res) => {
   try {
-    const { city } = req.query;  // Assuming you pass city as a query parameter
+    const { city } = req.query;
     const url = `http://api.weatherapi.com/v1/current.json?key=${process.env.WEATHER_API_KEY}&q=${city}`;
     const response = await axios.get(url);
     res.json(response.data);
