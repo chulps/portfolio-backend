@@ -55,6 +55,22 @@ app.get('/api/cities', async (req, res) => {
   }
 });
 
+// api route for getting city by lat/lon
+app.get('/api/location', async (req, res) => {
+  try {
+    const { lat, lon } = req.query;
+    const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lon}&key=${process.env.GOOGLE_API_KEY}`;
+    const response = await axios.get(url);
+    const city = response.data.results[0].address_components.find(component =>
+      component.types.includes("locality")
+    ).long_name;
+    res.json({ city });
+  } catch (error) {
+    console.error("Error fetching location data:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // api route for openai
 app.post('/api/openai', async (req, res) => {
   try {
