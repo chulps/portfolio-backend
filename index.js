@@ -24,6 +24,7 @@ app.get('/api/openweather', async (req, res) => {
     const response = await axios.get(url);
     res.json(response.data);
   } catch (error) {
+    console.error("Error fetching OpenWeatherAPI data:", error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -37,6 +38,19 @@ app.get('/api/weather', async (req, res) => {
     res.json(response.data);
   } catch (error) {
     console.error("Error fetching WeatherAPI data:", error);
+    res.status(error.response.status).json({ error: error.message });
+  }
+});
+
+// Using Google Places API to fetch city suggestions
+app.get('/api/cities', async (req, res) => {
+  try {
+    const { city } = req.query;
+    const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${city}&types=(cities)&key=${process.env.GOOGLE_API_KEY}`;
+    const response = await axios.get(url);
+    res.json(response.data.predictions);
+  } catch (error) {
+    console.error("Error fetching city data from Google:", error);
     res.status(500).json({ error: error.message });
   }
 });
