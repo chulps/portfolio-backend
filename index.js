@@ -21,7 +21,7 @@ const apiLimiter = rateLimit({
 
 // Initialize Google Cloud Translation client with API key
 const translate = new Translate({
-  key: process.env.GOOGLE_API_KEY,
+  key: process.env.GOOGLE_TRANSLATION_API_KEY,
 });
 
 // API home route
