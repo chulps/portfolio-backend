@@ -1,31 +1,35 @@
-// index.js
 const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const rateLimit = require('express-rate-limit');
+const { Translate } = require('@google-cloud/translate').v2;
 dotenv.config();
 
 const app = express();
 
 app.use(cors());
-
 app.use(express.json());
 
 // Define the rate limit configuration
 const apiLimiter = rateLimit({
-  windowMs: 1 * 60 * 1000, // 15 minutes
-  max: 20, // Limit each IP to 100 requests per `window` (here, per 15 minutes)
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 10, // Limit each IP to 10 requests per `window`
   message: 'Too many requests from this IP, please try again after 1 minute',
-  headers: true, 
+  headers: true,
 });
 
-// api home route
+// Initialize Google Cloud Translation client with API key
+const translate = new Translate({
+  key: process.env.GOOGLE_API_KEY,
+});
+
+// API home route
 app.get('/', (req, res) => {
-  res.send('Hello, World! This is the backend for Chucks portfolio. ');
+  res.send('Hello, World! This is the backend for Chucks portfolio.');
 });
 
-// api route for weather data
+// API route for weather data
 app.get('/api/openweather', apiLimiter, async (req, res) => {
   try {
     const { city } = req.query;
@@ -38,7 +42,7 @@ app.get('/api/openweather', apiLimiter, async (req, res) => {
   }
 });
 
-// api route for WeatherAPI data
+// API route for WeatherAPI data
 app.get('/api/weather', apiLimiter, async (req, res) => {
   try {
     const { city } = req.query;
@@ -64,7 +68,7 @@ app.get('/api/cities', apiLimiter, async (req, res) => {
   }
 });
 
-// api route for getting city by lat/lon
+// API route for getting city by lat/lon
 app.get('/api/location', apiLimiter, async (req, res) => {
   try {
     const { lat, lon } = req.query;
@@ -80,7 +84,7 @@ app.get('/api/location', apiLimiter, async (req, res) => {
   }
 });
 
-// api route for openai
+// API route for OpenAI
 app.post('/api/openai', async (req, res) => {
   try {
     const response = await axios.post(
@@ -99,21 +103,24 @@ app.post('/api/openai', async (req, res) => {
   }
 });
 
-// api route for covid data
-app.get('/api/covid', async (req, res) => {
+// API route for translation
+app.post('/api/translate', async (req, res) => {
   try {
-    const options = {
-      method: 'GET',
-      url: process.env.COVID_URL,
-      headers: {
-        'X-RapidAPI-Key': process.env.COVID_API_KEY,
-        'X-RapidAPI-Host': process.env.COVID_HOST,
-      },
-    };
-    const response = await axios.request(options);
-    res.json(response.data.response);
+    const { text, targetLanguage } = req.body;
+    console.log(`Translating text: "${text}" to "${targetLanguage}"`);
+    const [translation] = await translate.translate(text, targetLanguage);
+    console.log(`Translated text: "${translation}"`);
+    res.json({ translatedText: translation });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error("Error translating text:", error);
+
+    if (error.code === 429) {
+      res.status(429).json({ error: "Too many requests, please try again later." });
+    } else if (error.code === 403) {
+      res.status(403).json({ error: "API not enabled or not configured correctly." });
+    } else {
+      res.status(500).json({ error: error.message });
+    }
   }
 });
 
