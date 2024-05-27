@@ -32,8 +32,8 @@ app.get('/', (req, res) => {
 // API route for weather data
 app.get('/api/openweather', apiLimiter, async (req, res) => {
   try {
-    const { city } = req.query;
-    const url = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${process.env.OPEN_WEATHER_API_KEY}&units=metric`;
+    const { city, lang } = req.query;
+    const url = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${process.env.OPEN_WEATHER_API_KEY}&units=metric&lang=${lang}`;
     const response = await axios.get(url);
     res.json(response.data);
   } catch (error) {
@@ -42,11 +42,10 @@ app.get('/api/openweather', apiLimiter, async (req, res) => {
   }
 });
 
-// API route for WeatherAPI data
 app.get('/api/weather', apiLimiter, async (req, res) => {
   try {
-    const { city } = req.query;
-    const url = `http://api.weatherapi.com/v1/current.json?key=${process.env.WEATHER_API_KEY}&q=${city}`;
+    const { city, lang } = req.query;
+    const url = `http://api.weatherapi.com/v1/current.json?key=${process.env.WEATHER_API_KEY}&q=${city}&lang=${lang}`;
     const response = await axios.get(url);
     res.json(response.data);
   } catch (error) {
