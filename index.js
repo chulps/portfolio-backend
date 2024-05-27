@@ -14,7 +14,7 @@ app.use(express.json());
 // Define the rate limit configuration
 const apiLimiter = rateLimit({
   windowMs: 1 * 60 * 1000, // 1 minute
-  max: 20, // Limit each IP to 20 requests per window
+  max: 200, // Limit each IP to 20 requests per window
   message: 'Too many requests from this IP, please try again after 1 minute',
   headers: true,
 });
@@ -161,6 +161,30 @@ app.post('/api/translate', async (req, res) => {
     } else {
       res.status(500).json({ error: error.message });
     }
+  }
+});
+
+// detect language
+app.post('/api/detect-language', async (req, res) => {
+  try {
+    const { text } = req.body;
+    const [detection] = await translate.detect(text);
+    res.json({ language: detection.language });
+  } catch (error) {
+    console.error("Error detecting language:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// translate city name
+app.post('/api/translate-city', async (req, res) => {
+  try {
+    const { text, targetLanguage } = req.body;
+    const [translation] = await translate.translate(text, targetLanguage);
+    res.json({ translatedText: translation });
+  } catch (error) {
+    console.error("Error translating city name:", error);
+    res.status(500).json({ error: error.message });
   }
 });
 
