@@ -107,23 +107,23 @@ app.get('/api/location', apiLimiter, async (req, res) => {
 });
 
 // API route for OpenAI
-// app.post('/api/openai', async (req, res) => {
-//   try {
-//     const response = await axios.post(
-//       `${process.env.OPENAI_API_URL}`,
-//       req.body,
-//       {
-//         headers: {
-//           'Content-Type': 'application/json',
-//           Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-//         },
-//       }
-//     );
-//     res.json(response.data);
-//   } catch (error) {
-//     res.status(500).json({ error: error.message });
-//   }
-// });
+app.post('/api/openai', async (req, res) => {
+  try {
+    const response = await axios.post(
+      `${process.env.OPENAI_API_URL}`,
+      req.body,
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        },
+      }
+    );
+    res.json(response.data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 // API route for COVID data
 app.get('/api/covid', async (req, res) => {
