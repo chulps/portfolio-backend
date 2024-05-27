@@ -14,14 +14,14 @@ app.use(express.json());
 // Define the rate limit configuration
 const apiLimiter = rateLimit({
   windowMs: 1 * 60 * 1000, // 1 minute
-  max: 10, // Limit each IP to 10 requests per `window`
+  max: 20, // Limit each IP to 20 requests per window
   message: 'Too many requests from this IP, please try again after 1 minute',
   headers: true,
 });
 
 // Initialize Google Cloud Translation client with API key
 const translate = new Translate({
-  key: process.env.GOOGLE_TRANSLATION_API_KEY,
+  key: process.env.GOOGLE_API_KEY,
 });
 
 // API home route
@@ -74,13 +74,36 @@ app.get('/api/location', apiLimiter, async (req, res) => {
     const { lat, lon } = req.query;
     const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lon}&key=${process.env.GOOGLE_API_KEY}`;
     const response = await axios.get(url);
-    const city = response.data.results[0].address_components.find(component =>
+    
+    // Log the response to check its structure
+    console.log("Google Geocode API response:", response.data);
+
+    const results = response.data.results;
+    if (results.length === 0) {
+      throw new Error("No results found for the provided latitude and longitude.");
+    }
+
+    const addressComponents = results[0].address_components;
+    const cityComponent = addressComponents.find(component =>
       component.types.includes("locality")
-    ).long_name;
+    );
+
+    if (!cityComponent) {
+      throw new Error("City not found in the response.");
+    }
+
+    const city = cityComponent.long_name;
     res.json({ city });
   } catch (error) {
     console.error("Error fetching location data:", error);
-    res.status(500).json({ error: error.message });
+    if (error.response) {
+      console.error("Error response data:", error.response.data);
+      console.error("Error response status:", error.response.status);
+      console.error("Error response headers:", error.response.headers);
+      res.status(error.response.status).json({ error: error.response.data });
+    } else {
+      res.status(500).json({ error: error.message });
+    }
   }
 });
 
@@ -98,6 +121,24 @@ app.post('/api/openai', async (req, res) => {
       }
     );
     res.json(response.data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// API route for COVID data
+app.get('/api/covid', async (req, res) => {
+  try {
+    const options = {
+      method: 'GET',
+      url: process.env.COVID_URL,
+      headers: {
+        'X-RapidAPI-Key': process.env.COVID_API_KEY,
+        'X-RapidAPI-Host': process.env.COVID_HOST,
+      },
+    };
+    const response = await axios.request(options);
+    res.json(response.data.response);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
