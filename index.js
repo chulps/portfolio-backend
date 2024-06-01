@@ -4,9 +4,18 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const rateLimit = require('express-rate-limit');
 const { Translate } = require('@google-cloud/translate').v2;
+const http = require('http');
+const socketIo = require('socket.io');
 dotenv.config();
 
 const app = express();
+const server = http.createServer(app);
+const io = socketIo(server, {
+  cors: {
+    origin: "http://localhost:3000",
+    methods: ["GET", "POST"]
+  }
+});
 
 app.use(cors());
 app.use(express.json());
@@ -188,5 +197,27 @@ app.post('/api/translate-city', async (req, res) => {
   }
 });
 
+// Socket.IO setup
+io.on('connection', (socket) => {
+  console.log('New client connected');
+
+  socket.on('joinRoom', ({ chatroomId, name, language }) => {
+    socket.join(chatroomId);
+    console.log(`${name} joined chatroom: ${chatroomId}`);
+  });
+
+  socket.on('sendMessage', (message) => {
+    const { text, sender, chatroomId } = message;
+    console.log(`Message received from ${sender}: ${text}`);
+
+    // Emit the message to the room
+    io.to(chatroomId).emit('message', message);
+  });
+
+  socket.on('disconnect', () => {
+    console.log('Client disconnected');
+  });
+});
+
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
+server.listen(PORT, () => console.log(`Server started on port ${PORT}`));
