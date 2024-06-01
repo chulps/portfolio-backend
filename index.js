@@ -10,18 +10,18 @@ dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
-const io = socketIo(server, {
-  cors: {
-    origin: [
-      "http://localhost:3000",
-      "https://chulps.github.io/",
-      "https://chulps.github.io/weather-dashboard/",
-      "https://chulps.github.io/chat-app/",
-      "https://chulps.github.io/react-gh-pages/",
-    ],
-    methods: ["GET", "POST"],
-  },
-});
+const io = socketIo(server);
+const corsOptions = {
+  origin: [
+    "http://localhost:3000",
+    "https://chulps.github.io",
+    "https://chulps.github.io/weather-dashboard",
+    "https://chulps.github.io/chat-app",
+    "https://chulps.github.io/react-gh-pages",
+  ],
+  methods: ["GET", "POST"],
+};
+io.use(cors(corsOptions));
 
 app.use(cors());
 app.use(express.json());
