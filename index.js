@@ -12,7 +12,13 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    origin: ["http://localhost:3000", "https://chulps.github.io/"],
+    origin: [
+      "http://localhost:3000",
+      "https://chulps.github.io/",
+      "https://chulps.github.io/weather-dashboard/",
+      "https://chulps.github.io/chat-app/",
+      "https://chulps.github.io/react-gh-pages/",
+    ],
     methods: ["GET", "POST"],
   },
 });
