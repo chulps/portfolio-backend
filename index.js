@@ -10,30 +10,14 @@ dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
-const io = socketIo(server);
-
-// Configure CORS for Express app
-const corsOptions = {
-  origin: [
-    'http://localhost:3000',
-    'https://chulps.github.io',
-    'https://chulps.github.io/weather-dashboard',
-    'https://chulps.github.io/chat-app',
-    'https://chulps.github.io/react-gh-pages',
-  ],
-  methods: ['GET', 'POST'],
-};
-app.use(cors(corsOptions));
-
-// Configure CORS for Socket.IO
-io.use((socket, next) => {
-  const origin = socket.handshake.headers.origin;
-  if (corsOptions.origin.includes(origin)) {
-    return next();
-  }
-  next(new Error('Not allowed by CORS'));
+const io = socketIo(server, {
+  cors: {
+    origin: ["http://localhost:3000", "https://chulps.github.io/"],
+    methods: ["GET", "POST"],
+  },
 });
 
+app.use(cors());
 app.use(express.json());
 
 // Define the rate limit configuration
