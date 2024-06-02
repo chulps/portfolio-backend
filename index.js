@@ -12,12 +12,24 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    origin: "http://localhost:3000",
-    methods: ["GET", "POST"]
-  }
+    origin: [
+      "http://localhost:3000", 
+      "https://chulps.github.io", 
+      "http://192.168.40.215:3000" // for testing in dev only
+    ],
+    methods: ["GET", "POST"],
+  },
 });
 
-app.use(cors());
+app.use(cors({
+  origin: [
+    "http://localhost:3000", 
+    "https://chulps.github.io",
+    "http://192.168.40.215:3000" // for testing in dev only
+  ],
+  methods: ["GET", "POST"],
+}));
+
 app.use(express.json());
 
 // Define the rate limit configuration
@@ -197,21 +209,41 @@ app.post('/api/translate-city', async (req, res) => {
   }
 });
 
-// Socket.IO setup
+const chatRoomMessages = {}; // Store message history for each chatroom
+
 io.on('connection', (socket) => {
   console.log('New client connected');
 
   socket.on('joinRoom', ({ chatroomId, name, language }) => {
+    console.log(`Received joinRoom event for chatroom: ${chatroomId}, user: ${name}, language: ${language}`);
     socket.join(chatroomId);
     console.log(`${name} joined chatroom: ${chatroomId}`);
+
+    // Send the message history for the chatroom
+    if (chatRoomMessages[chatroomId]) {
+      socket.emit('messageHistory', chatRoomMessages[chatroomId]);
+    }
   });
 
   socket.on('sendMessage', (message) => {
     const { text, sender, chatroomId } = message;
     console.log(`Message received from ${sender}: ${text}`);
 
+    // Store the message in the chatroom's message history
+    if (!chatRoomMessages[chatroomId]) {
+      chatRoomMessages[chatroomId] = [];
+    }
+    chatRoomMessages[chatroomId].push(message);
+
+    console.log(`Message history for ${chatroomId}:`, chatRoomMessages[chatroomId]);
+
     // Emit the message to the room
     io.to(chatroomId).emit('message', message);
+  });
+
+  socket.on('leaveRoom', ({ chatroomId, name }) => {
+    socket.leave(chatroomId);
+    console.log(`${name} left chatroom: ${chatroomId}`);
   });
 
   socket.on('disconnect', () => {
