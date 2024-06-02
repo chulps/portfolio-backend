@@ -241,6 +241,27 @@ io.on('connection', (socket) => {
     io.to(chatroomId).emit('message', message);
   });
 
+  socket.on('sendSystemMessage', (message) => {
+    const { text, chatroomId } = message;
+    console.log(`System message: ${text}`);
+
+    // Store the message in the chatroom's message history
+    if (!chatRoomMessages[chatroomId]) {
+      chatRoomMessages[chatroomId] = [];
+    }
+    chatRoomMessages[chatroomId].push(message);
+
+    console.log(`Message history for ${chatroomId}:`, chatRoomMessages[chatroomId]);
+
+    // Emit the system message to the room
+    io.to(chatroomId).emit('message', message);
+  });
+
+  socket.on('userTyping', ({ chatroomId, name }) => {
+    console.log(`${name} is typing in chatroom: ${chatroomId}`);
+    socket.broadcast.to(chatroomId).emit('userTyping', name);
+  });
+
   socket.on('leaveRoom', ({ chatroomId, name }) => {
     socket.leave(chatroomId);
     console.log(`${name} left chatroom: ${chatroomId}`);
