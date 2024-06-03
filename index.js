@@ -265,6 +265,13 @@ io.on('connection', (socket) => {
   socket.on('leaveRoom', ({ chatroomId, name }) => {
     socket.leave(chatroomId);
     console.log(`${name} left chatroom: ${chatroomId}`);
+
+    // Remove chatroom if no users are left
+    const room = io.sockets.adapter.rooms[chatroomId];
+    if (!room || room.length === 0) {
+      delete chatRoomMessages[chatroomId];
+      console.log(`Chatroom ${chatroomId} deleted.`);
+    }
   });
 
   socket.on('disconnect', () => {
