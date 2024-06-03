@@ -94,9 +94,6 @@ app.get('/api/location', apiLimiter, async (req, res) => {
     const { lat, lon } = req.query;
     const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lon}&key=${process.env.GOOGLE_API_KEY}`;
     const response = await axios.get(url);
-    
-    // Log the response to check its structure
-    console.log("Google Geocode API response:", response.data);
 
     const results = response.data.results;
     if (results.length === 0) {
@@ -165,20 +162,30 @@ app.get('/api/covid', async (req, res) => {
 });
 
 // API route for translation
-app.post('/api/translate', async (req, res) => {
+app.post("/api/translate", async (req, res) => {
   try {
     const { text, targetLanguage } = req.body;
-    console.log(`Translating text: "${text}" to "${targetLanguage}"`);
-    const [translation] = await translate.translate(text, targetLanguage);
-    console.log(`Translated text: "${translation}"`);
-    res.json({ translatedText: translation });
+    const detectedLanguage = await translate.detect(text);
+    if (detectedLanguage === targetLanguage) {
+      console.log(`Text is already in "${targetLanguage}" language`);
+      res.json({ translatedText: text });
+    } else {
+      console.log(`Translating text: "${text}" to "${targetLanguage}"`);
+      const [translation] = await translate.translate(text, targetLanguage);
+      console.log(`Translated text: "${translation}"`);
+      res.json({ translatedText: translation });
+    }
   } catch (error) {
     console.error("Error translating text:", error);
 
     if (error.code === 429) {
-      res.status(429).json({ error: "Too many requests, please try again later." });
+      res
+        .status(429)
+        .json({ error: "Too many requests, please try again later." });
     } else if (error.code === 403) {
-      res.status(403).json({ error: "API not enabled or not configured correctly." });
+      res
+        .status(403)
+        .json({ error: "API not enabled or not configured correctly." });
     } else {
       res.status(500).json({ error: error.message });
     }
@@ -211,6 +218,8 @@ app.post('/api/translate-city', async (req, res) => {
 
 const chatRoomMessages = {}; // Store message history for each chatroom
 
+const MESSAGE_EXPIRATION_TIME = 10 * 60 * 1000; // 10 minutes in milliseconds
+
 io.on('connection', (socket) => {
   console.log('New client connected');
 
@@ -221,7 +230,7 @@ io.on('connection', (socket) => {
 
     // Send the message history for the chatroom
     if (chatRoomMessages[chatroomId]) {
-      socket.emit('messageHistory', chatRoomMessages[chatroomId]);
+      socket.emit('messageHistory', chatRoomMessages[chatroomId].filter(msg => (new Date() - new Date(msg.timestamp)) < MESSAGE_EXPIRATION_TIME));
     }
   });
 
@@ -266,9 +275,9 @@ io.on('connection', (socket) => {
     socket.leave(chatroomId);
     console.log(`${name} left chatroom: ${chatroomId}`);
 
-    // Remove chatroom if no users are left
-    const room = io.sockets.adapter.rooms[chatroomId];
-    if (!room || room.length === 0) {
+    // Check if there are no users left in the room
+    const room = io.sockets.adapter.rooms.get(chatroomId);
+    if (!room || room.size === 0) {
       delete chatRoomMessages[chatroomId];
       console.log(`Chatroom ${chatroomId} deleted.`);
     }
@@ -278,6 +287,14 @@ io.on('connection', (socket) => {
     console.log('Client disconnected');
   });
 });
+
+// Clean up expired messages every minute
+setInterval(() => {
+  const now = new Date();
+  for (const chatroomId in chatRoomMessages) {
+    chatRoomMessages[chatroomId] = chatRoomMessages[chatroomId].filter(msg => (now - new Date(msg.timestamp)) < MESSAGE_EXPIRATION_TIME);
+  }
+}, 60 * 1000);
 
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => console.log(`Server started on port ${PORT}`));
