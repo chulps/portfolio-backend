@@ -266,6 +266,7 @@ io.on('connection', (socket) => {
     socket.leave(chatroomId);
     console.log(`${name} left chatroom: ${chatroomId}`);
 
+    // ...
     // Remove chatroom if no users are left
     io.on("connection", (socket) => {
       socket.on("join-room", (chatroomId) => {
