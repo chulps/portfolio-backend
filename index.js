@@ -267,11 +267,19 @@ io.on('connection', (socket) => {
     console.log(`${name} left chatroom: ${chatroomId}`);
 
     // Remove chatroom if no users are left
-    const room = io.sockets.adapter.rooms[chatroomId];
-    if (!room || room.length === 0) {
-      delete chatRoomMessages[chatroomId];
-      console.log(`Chatroom ${chatroomId} deleted.`);
-    }
+    io.on("connection", (socket) => {
+      socket.on("join-room", (chatroomId) => {
+        socket.join(chatroomId);
+        clearTimeout(chatRoomTimers[chatroomId]);
+        chatRoomTimers[chatroomId] = setTimeout(() => {
+      const room = io.sockets.adapter.rooms[chatroomId];
+      if (!room || room.length === 0) {
+        delete chatRoomMessages[chatroomId];
+        console.log(`Chatroom ${chatroomId} deleted.`);
+      }
+    }, 30 * 60 * 1000); // 30 minutes in milliseconds
+  });
+});
   });
 
   socket.on('disconnect', () => {
