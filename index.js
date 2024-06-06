@@ -209,6 +209,18 @@ app.post('/api/translate-city', async (req, res) => {
   }
 });
 
+// Add the new route for fetching URL metadata
+app.get('/api/url-metadata', async (req, res) => {
+  const { url } = req.query;
+  try {
+    const response = await axios.get(`https://api.linkpreview.net/?key=${process.env.LINK_PREVIEW_API_KEY}&q=${url}`);
+    res.json(response.data);
+  } catch (error) {
+    console.error('Error fetching URL metadata:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 const chatRoomMessages = {}; // Store message history for each chatroom
 
 io.on('connection', (socket) => {
