@@ -167,7 +167,6 @@ app.post('/api/transcribe', upload.single('file'), async (req, res) => {
   try {
     console.log("Received a file for transcription");
 
-    // Check if the file exists
     if (!req.file) {
       throw new Error("No file uploaded");
     }
@@ -175,34 +174,39 @@ app.post('/api/transcribe', upload.single('file'), async (req, res) => {
     const audioPath = path.join(__dirname, req.file.path);
     console.log("Audio path:", audioPath);
 
-    const formData = new FormData();
-    formData.append('file', fs.createReadStream(audioPath));
-    formData.append('model', 'whisper-1');
+    const convertedPath = path.join(__dirname, 'uploads', `${req.file.filename}.m4a`);
+    ffmpeg(audioPath)
+      .toFormat('m4a')
+      .on('end', async () => {
+        const formData = new FormData();
+        formData.append('file', fs.createReadStream(convertedPath));
+        formData.append('model', 'whisper-1');
 
-    console.log("Sending request to OpenAI API");
+        console.log("Sending request to OpenAI API");
 
-    const response = await axios.post('https://api.openai.com/v1/audio/transcriptions', formData, {
-      headers: {
-        ...formData.getHeaders(),
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-      },
-    });
+        const response = await axios.post('https://api.openai.com/v1/audio/transcriptions', formData, {
+          headers: {
+            ...formData.getHeaders(),
+            Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+          },
+        });
 
-    console.log("Received response from OpenAI API");
+        console.log("Received response from OpenAI API");
 
-    // Clean up the uploaded file after processing
-    fs.unlinkSync(audioPath);
+        fs.unlinkSync(audioPath);
+        fs.unlinkSync(convertedPath);
 
-    const transcription = response.data.text;
-    res.json({ transcription });
+        const transcription = response.data.text;
+        res.json({ transcription });
+      })
+      .on('error', (err) => {
+        console.error('Error converting file:', err.message);
+        res.status(500).json({ error: 'Error converting file' });
+      })
+      .save(convertedPath);
   } catch (error) {
-    console.error('Error transcribing audio:', error.response ? error.response.data : error.message);
-    if (error.response) {
-      console.error('Detailed error response:', error.response.data);
-    }
-    console.error('Error response status:', error.response ? error.response.status : 'N/A');
-    console.error('Error response headers:', error.response ? error.response.headers : 'N/A');
-    res.status(500).json({ error: error.response ? error.response.data : error.message });
+    console.error('Error processing file:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 
