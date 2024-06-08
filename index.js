@@ -4,8 +4,13 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const rateLimit = require('express-rate-limit');
 const { Translate } = require('@google-cloud/translate').v2;
+const multer = require('multer');
+const fs = require('fs');
+const path = require('path');
 const http = require('http');
 const socketIo = require('socket.io');
+const FormData = require('form-data');
+
 dotenv.config();
 
 const app = express();
@@ -13,22 +18,25 @@ const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
     origin: [
-      "http://localhost:3000", 
-      "https://chulps.github.io", 
-      "http://192.168.40.215:3000" // for testing in dev only
+      "http://localhost:3000",
+      "https://chulps.github.io",
+      "http://192.168.40.215:3000", // for testing in dev only
     ],
     methods: ["GET", "POST"],
   },
 });
 
-app.use(cors({
-  origin: [
-    "http://localhost:3000", 
-    "https://chulps.github.io",
-    "http://192.168.40.215:3000" // for testing in dev only
-  ],
-  methods: ["GET", "POST"],
-}));
+// This code is redundant as the CORS configuration is already set in the socketIo options
+app.use(
+  cors({
+    origin: [
+      "http://localhost:3000",
+      "https://chulps.github.io",
+      "http://192.168.40.215:3000", // for testing in dev only
+    ],
+    methods: ["GET", "POST"],
+  })
+);
 
 app.use(express.json());
 
@@ -44,6 +52,18 @@ const apiLimiter = rateLimit({
 const translate = new Translate({
   key: process.env.GOOGLE_API_KEY,
 });
+
+// Configure multer to preserve the original file extension
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/');
+  },
+  filename: (req, file, cb) => {
+    cb(null, `${file.fieldname}-${Date.now()}${path.extname(file.originalname)}`);
+  }
+});
+
+const upload = multer({ storage });
 
 // API home route
 app.get('/', (req, res) => {
@@ -143,6 +163,36 @@ app.post('/api/openai', async (req, res) => {
     res.json(response.data);
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+});
+
+// API route for transcription
+app.post('/api/transcribe', upload.single('file'), async (req, res) => {
+  try {
+    const audioPath = path.join(__dirname, req.file.path);
+
+    const formData = new FormData();
+    formData.append('file', fs.createReadStream(audioPath));
+    formData.append('model', 'whisper-1');
+
+    const response = await axios.post('https://api.openai.com/v1/audio/transcriptions', formData, {
+      headers: {
+        ...formData.getHeaders(),
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+      },
+    });
+
+    // Clean up the uploaded file after processing
+    fs.unlinkSync(audioPath);
+
+    const transcription = response.data.text;
+    res.json({ transcription });
+  } catch (error) {
+    console.error('Error transcribing audio:', error.response ? error.response.data : error.message);
+    if (error.response) {
+      console.error('Detailed error response:', error.response.data);
+    }
+    res.status(500).json({ error: error.response ? error.response.data : error.message });
   }
 });
 
