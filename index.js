@@ -10,6 +10,7 @@ const path = require('path');
 const http = require('http');
 const socketIo = require('socket.io');
 const FormData = require('form-data');
+const ffmpeg = require('fluent-ffmpeg');
 
 dotenv.config();
 
@@ -180,26 +181,42 @@ app.post('/api/transcribe', upload.single('file'), async (req, res) => {
     const audioPath = path.join(__dirname, req.file.path);
     console.log("Audio path:", audioPath);
 
-    const formData = new FormData();
-    formData.append('file', fs.createReadStream(audioPath));
-    formData.append('model', 'whisper-1');
+    const convertedAudioPath = audioPath.replace(path.extname(audioPath), '.wav');
 
-    console.log("Sending request to OpenAI API");
+    // Convert the audio file to WAV format
+    ffmpeg(audioPath)
+      .toFormat('wav')
+      .save(convertedAudioPath)
+      .on('end', async () => {
+        console.log("Audio converted to WAV format");
 
-    const response = await axios.post('https://api.openai.com/v1/audio/transcriptions', formData, {
-      headers: {
-        ...formData.getHeaders(),
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-      },
-    });
+        const formData = new FormData();
+        formData.append('file', fs.createReadStream(convertedAudioPath));
+        formData.append('model', 'whisper-1');
 
-    console.log("Received response from OpenAI API");
+        console.log("Sending request to OpenAI API");
 
-    // Clean up the uploaded file after processing
-    fs.unlinkSync(audioPath);
+        const response = await axios.post('https://api.openai.com/v1/audio/transcriptions', formData, {
+          headers: {
+            ...formData.getHeaders(),
+            Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+          },
+        });
 
-    const transcription = response.data.text;
-    res.json({ transcription });
+        console.log("Received response from OpenAI API");
+
+        // Clean up the uploaded files after processing
+        fs.unlinkSync(audioPath);
+        fs.unlinkSync(convertedAudioPath);
+
+        const transcription = response.data.text;
+        res.json({ transcription });
+      })
+      .on('error', (error) => {
+        console.error('Error during conversion:', error);
+        res.status(500).json({ error: 'Failed to convert audio file' });
+      });
+
   } catch (error) {
     console.error('Error transcribing audio:', error.response ? error.response.data : error.message);
     if (error.response) {
@@ -210,6 +227,7 @@ app.post('/api/transcribe', upload.single('file'), async (req, res) => {
     res.status(500).json({ error: error.response ? error.response.data : error.message });
   }
 });
+
 
 // COVID data API route
 app.get('/api/covid', async (req, res) => {
