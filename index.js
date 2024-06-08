@@ -20,7 +20,8 @@ const io = socketIo(server, {
     origin: [
       "http://localhost:3000",
       "https://chulps.github.io",
-      "http://192.168.40.215:3000", // for testing in dev only
+      "http://192.168.40.215:3000",
+      "http://172.20.10.7:3000", // for testing in dev only
     ],
     methods: ["GET", "POST"],
   },
@@ -32,7 +33,8 @@ app.use(
     origin: [
       "http://localhost:3000",
       "https://chulps.github.io",
-      "http://192.168.40.215:3000", // for testing in dev only
+      "http://192.168.40.215:3000",
+      "http://172.20.10.7:3000", // for testing in dev only
     ],
     methods: ["GET", "POST"],
   })
