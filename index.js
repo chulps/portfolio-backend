@@ -221,7 +221,9 @@ app.get('/api/url-metadata', async (req, res) => {
   }
 });
 
-const chatRoomMessages = {}; // Store message history for each chatroom
+const chatRoomMessages = {};
+
+const chatRoomTimers = {};
 
 io.on('connection', (socket) => {
   console.log('New client connected');
@@ -278,21 +280,75 @@ io.on('connection', (socket) => {
     socket.leave(chatroomId);
     console.log(`${name} left chatroom: ${chatroomId}`);
 
-    // ...
+    // Emit a system message indicating the user has left
+    const systemMessage = {
+      text: `${name} has left the chat.`,
+      chatroomId,
+      type: 'system',
+      timestamp: new Date().toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      }),
+    };
+
+    if (!chatRoomMessages[chatroomId]) {
+      chatRoomMessages[chatroomId] = [];
+    }
+    chatRoomMessages[chatroomId].push(systemMessage);
+
+    io.to(chatroomId).emit('message', systemMessage);
+
     // Remove chatroom if no users are left
-    io.on("connection", (socket) => {
-      socket.on("join-room", (chatroomId) => {
-        socket.join(chatroomId);
-        clearTimeout(chatRoomTimers[chatroomId]);
-        chatRoomTimers[chatroomId] = setTimeout(() => {
-      const room = io.sockets.adapter.rooms[chatroomId];
-      if (!room || room.length === 0) {
-        delete chatRoomMessages[chatroomId];
-        console.log(`Chatroom ${chatroomId} deleted.`);
-      }
-    }, 30 * 60 * 1000); // 30 minutes in milliseconds
+    if (io.sockets.adapter.rooms[chatroomId]?.length === 0) {
+      clearTimeout(chatRoomTimers[chatroomId]);
+      chatRoomTimers[chatroomId] = setTimeout(() => {
+        if (!io.sockets.adapter.rooms[chatroomId]) {
+          delete chatRoomMessages[chatroomId];
+          console.log(`Chatroom ${chatroomId} deleted.`);
+        }
+      }, 30 * 60 * 1000); // 30 minutes in milliseconds
+    }
   });
-});
+
+  socket.on('userAway', ({ chatroomId, name }) => {
+    const systemMessage = {
+      text: `${name} is away.`,
+      chatroomId,
+      type: 'system',
+      timestamp: new Date().toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      }),
+    };
+
+    if (!chatRoomMessages[chatroomId]) {
+      chatRoomMessages[chatroomId] = [];
+    }
+    chatRoomMessages[chatroomId].push(systemMessage);
+
+    io.to(chatroomId).emit('message', systemMessage);
+  });
+
+  socket.on('userReturned', ({ chatroomId, name }) => {
+    const systemMessage = {
+      text: `${name} has returned.`,
+      chatroomId,
+      type: 'system',
+      timestamp: new Date().toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      }),
+    };
+
+    if (!chatRoomMessages[chatroomId]) {
+      chatRoomMessages[chatroomId] = [];
+    }
+    chatRoomMessages[chatroomId].push(systemMessage);
+
+    io.to(chatroomId).emit('message', systemMessage);
   });
 
   socket.on('disconnect', () => {
