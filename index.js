@@ -27,6 +27,12 @@ const io = socketIo(server, {
   },
 });
 
+// Ensure the uploads directory exists
+const uploadsDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir);
+}
+
 // CORS configuration
 app.use(
   cors({
@@ -162,7 +168,6 @@ app.post('/api/openai', async (req, res) => {
 });
 
 // Transcription API route
-// API route for transcription
 app.post('/api/transcribe', upload.single('file'), async (req, res) => {
   try {
     console.log("Received a file for transcription");
