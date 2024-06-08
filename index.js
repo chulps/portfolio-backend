@@ -27,7 +27,7 @@ const io = socketIo(server, {
   },
 });
 
-// This code is redundant as the CORS configuration is already set in the socketIo options
+// CORS configuration
 app.use(
   cors({
     origin: [
@@ -42,7 +42,7 @@ app.use(
 
 app.use(express.json());
 
-// Define the rate limit configuration
+// Rate limit configuration
 const apiLimiter = rateLimit({
   windowMs: 1 * 60 * 1000, // 1 minute
   max: 20, // Limit each IP to 20 requests per window
@@ -50,12 +50,12 @@ const apiLimiter = rateLimit({
   headers: true,
 });
 
-// Initialize Google Cloud Translation client with API key
+// Google Cloud Translation client
 const translate = new Translate({
   key: process.env.GOOGLE_API_KEY,
 });
 
-// Configure multer to preserve the original file extension
+// Multer storage configuration
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, 'uploads/');
@@ -64,12 +64,11 @@ const storage = multer.diskStorage({
     cb(null, `${file.fieldname}-${Date.now()}${path.extname(file.originalname)}`);
   }
 });
-
 const upload = multer({ storage });
 
 // API home route
 app.get('/', (req, res) => {
-  res.send('Hello, World! This is the backend for Chucks portfolio.');
+  res.send('Hello, World! This is the backend for Chuck\'s portfolio.');
 });
 
 // API route for weather data
@@ -97,7 +96,7 @@ app.get('/api/weather', apiLimiter, async (req, res) => {
   }
 });
 
-// Using Google Places API to fetch city suggestions
+// Google Places API route
 app.get('/api/cities', apiLimiter, async (req, res) => {
   try {
     const { city } = req.query;
@@ -110,17 +109,14 @@ app.get('/api/cities', apiLimiter, async (req, res) => {
   }
 });
 
-// API route for getting city by lat/lon
+// Google Geocode API route
 app.get('/api/location', apiLimiter, async (req, res) => {
   try {
     const { lat, lon } = req.query;
     const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lon}&key=${process.env.GOOGLE_API_KEY}`;
     const response = await axios.get(url);
-    
-    // Log the response to check its structure
-    console.log("Google Geocode API response:", response.data);
-
     const results = response.data.results;
+
     if (results.length === 0) {
       throw new Error("No results found for the provided latitude and longitude.");
     }
@@ -139,9 +135,6 @@ app.get('/api/location', apiLimiter, async (req, res) => {
   } catch (error) {
     console.error("Error fetching location data:", error);
     if (error.response) {
-      console.error("Error response data:", error.response.data);
-      console.error("Error response status:", error.response.status);
-      console.error("Error response headers:", error.response.headers);
       res.status(error.response.status).json({ error: error.response.data });
     } else {
       res.status(500).json({ error: error.message });
@@ -149,7 +142,7 @@ app.get('/api/location', apiLimiter, async (req, res) => {
   }
 });
 
-// API route for OpenAI
+// OpenAI API route
 app.post('/api/openai', async (req, res) => {
   try {
     const response = await axios.post(
@@ -168,10 +161,15 @@ app.post('/api/openai', async (req, res) => {
   }
 });
 
-// API route for transcription
+// Transcription API route
 app.post('/api/transcribe', upload.single('file'), async (req, res) => {
   try {
+    if (!req.file) {
+      return res.status(400).json({ error: "No file uploaded" });
+    }
+
     const audioPath = path.join(__dirname, req.file.path);
+    console.log(`File path: ${audioPath}`);
 
     const formData = new FormData();
     formData.append('file', fs.createReadStream(audioPath));
@@ -198,7 +196,7 @@ app.post('/api/transcribe', upload.single('file'), async (req, res) => {
   }
 });
 
-// API route for COVID data
+// COVID data API route
 app.get('/api/covid', async (req, res) => {
   try {
     const options = {
@@ -216,28 +214,18 @@ app.get('/api/covid', async (req, res) => {
   }
 });
 
-// API route for translation
+// Translation API routes
 app.post('/api/translate', async (req, res) => {
   try {
     const { text, targetLanguage } = req.body;
-    console.log(`Translating text: "${text}" to "${targetLanguage}"`);
     const [translation] = await translate.translate(text, targetLanguage);
-    console.log(`Translated text: "${translation}"`);
     res.json({ translatedText: translation });
   } catch (error) {
     console.error("Error translating text:", error);
-
-    if (error.code === 429) {
-      res.status(429).json({ error: "Too many requests, please try again later." });
-    } else if (error.code === 403) {
-      res.status(403).json({ error: "API not enabled or not configured correctly." });
-    } else {
-      res.status(500).json({ error: error.message });
-    }
+    res.status(500).json({ error: error.message });
   }
 });
 
-// detect language
 app.post('/api/detect-language', async (req, res) => {
   try {
     const { text } = req.body;
@@ -249,7 +237,6 @@ app.post('/api/detect-language', async (req, res) => {
   }
 });
 
-// translate city name
 app.post('/api/translate-city', async (req, res) => {
   try {
     const { text, targetLanguage } = req.body;
@@ -261,7 +248,7 @@ app.post('/api/translate-city', async (req, res) => {
   }
 });
 
-// Add the new route for fetching URL metadata
+// URL metadata API route
 app.get('/api/url-metadata', async (req, res) => {
   const { url } = req.query;
   try {
@@ -274,7 +261,6 @@ app.get('/api/url-metadata', async (req, res) => {
 });
 
 const chatRoomMessages = {};
-
 const chatRoomTimers = {};
 
 io.on('connection', (socket) => {
