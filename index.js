@@ -162,18 +162,24 @@ app.post('/api/openai', async (req, res) => {
 });
 
 // Transcription API route
+// API route for transcription
 app.post('/api/transcribe', upload.single('file'), async (req, res) => {
   try {
+    console.log("Received a file for transcription");
+
+    // Check if the file exists
     if (!req.file) {
-      return res.status(400).json({ error: "No file uploaded" });
+      throw new Error("No file uploaded");
     }
 
     const audioPath = path.join(__dirname, req.file.path);
-    console.log(`File path: ${audioPath}`);
+    console.log("Audio path:", audioPath);
 
     const formData = new FormData();
     formData.append('file', fs.createReadStream(audioPath));
     formData.append('model', 'whisper-1');
+
+    console.log("Sending request to OpenAI API");
 
     const response = await axios.post('https://api.openai.com/v1/audio/transcriptions', formData, {
       headers: {
@@ -181,6 +187,8 @@ app.post('/api/transcribe', upload.single('file'), async (req, res) => {
         Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
       },
     });
+
+    console.log("Received response from OpenAI API");
 
     // Clean up the uploaded file after processing
     fs.unlinkSync(audioPath);
@@ -192,6 +200,8 @@ app.post('/api/transcribe', upload.single('file'), async (req, res) => {
     if (error.response) {
       console.error('Detailed error response:', error.response.data);
     }
+    console.error('Error response status:', error.response ? error.response.status : 'N/A');
+    console.error('Error response headers:', error.response ? error.response.headers : 'N/A');
     res.status(500).json({ error: error.response ? error.response.data : error.message });
   }
 });
