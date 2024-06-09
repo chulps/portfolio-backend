@@ -18,22 +18,30 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    origin: ["http://localhost:3000"],
+    origin: [
+      "http://localhost:3000",
+      "https://chulps.github.io",
+      "http://192.168.40.215:3000",
+      "http://172.20.10.7:3000", // for testing in dev only
+    ],
     methods: ["GET", "POST"],
   },
 });
-
-// Ensure the uploads directory exists
-const uploadsDir = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir);
+	@@ -35,17 +30,10 @@ if (!fs.existsSync(uploadsDir)) {
 }
 
 // CORS configuration
-app.use(cors({
-  origin: ["http://localhost:3000"],
-  methods: ["GET", "POST"],
-}));
+app.use(
+  cors({
+    origin: [
+      "http://localhost:3000",
+      "https://chulps.github.io",
+      "http://192.168.40.215:3000",
+      "http://172.20.10.7:3000", // for testing in dev only
+    ],
+    methods: ["GET", "POST"],
+  })
+);
 
 app.use(express.json());
 
