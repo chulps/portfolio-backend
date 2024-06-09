@@ -27,11 +27,7 @@ const io = socketIo(server, {
     methods: ["GET", "POST"],
   },
 });
-
-// Ensure the uploads directory exists
-const uploadsDir = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir);
+	@@ -35,17 +30,10 @@ if (!fs.existsSync(uploadsDir)) {
 }
 
 // CORS configuration
@@ -76,6 +72,31 @@ const upload = multer({ storage });
 // API home route
 app.get('/', (req, res) => {
   res.send('Hello, World! This is the backend for Chuck\'s portfolio.');
+});
+
+// Endpoint for dynamic metadata
+app.get('/invite/:username/:chatroomId', (req, res) => {
+  const { username, chatroomId } = req.params;
+  res.send(`
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta property="og:title" content="Join a Chatroom on T-Chat" />
+        <meta property="og:description" content="Translate your conversation with ${username} on T-Chat" />
+        <meta property="og:url" content="http://localhost:3000/chat-app/#/chatroom/${chatroomId}?name=${username}" />
+        <meta property="og:type" content="website" />
+        <meta property="og:image" content="http://localhost:3000/path/to/your/image.png" />
+        <title>Join a Chatroom on T-Chat</title>
+    </head>
+    <body>
+        <script>
+            window.location.href = "http://localhost:3000/chat-app/#/chatroom/${chatroomId}?name=${username}";
+        </script>
+    </body>
+    </html>
+  `);
 });
 
 // API route for weather data
