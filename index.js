@@ -9,8 +9,10 @@ const fs = require('fs');
 const path = require('path');
 const http = require('http');
 const socketIo = require('socket.io');
+const mongoose = require('mongoose');
 const FormData = require('form-data');
 const ffmpeg = require('fluent-ffmpeg');
+const auth = require('./middleware/auth');
 
 dotenv.config();
 
@@ -73,12 +75,50 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
+// MongoDB connection
+mongoose.connect(process.env.MONGODB_URI).then(() => {
+  console.log('MongoDB connected successfully');
+}).catch(err => {
+  console.error('MongoDB connection error:', err);
+});
+
+// MongoDB models
+const MessageSchema = new mongoose.Schema({
+  sender: String,
+  text: String,
+  language: String,
+  chatroomId: String,
+  timestamp: String,
+  type: String,
+});
+
+const Message = mongoose.model('Message', MessageSchema);
+
 // API home route
 app.get('/', (req, res) => {
   res.send('Hello, World! This is the backend for Chuck\'s portfolio.');
 });
 
+// Authentication routes
+const authRoutes = require('./routes/auth');
+app.use('/api/auth', authRoutes);
 
+// Profile routes
+const profileRoutes = require('./routes/profile');
+app.use('/api/profile', profileRoutes);
+
+// Friend routes
+const friendRoutes = require('./routes/friends');
+app.use('/api/friends', friendRoutes);
+
+// Chatroom routes
+const chatroomRoutes = require('./routes/chatroom');
+app.use('/api/chatrooms', chatroomRoutes);
+
+// Protected route example
+app.get('/api/protected', auth, (req, res) => {
+  res.send('This is a protected route');
+});
 
 // API route for weather data
 app.get('/api/openweather', apiLimiter, async (req, res) => {
@@ -230,7 +270,6 @@ app.post('/api/transcribe', upload.single('file'), async (req, res) => {
   }
 });
 
-
 // COVID data API route
 app.get('/api/covid', async (req, res) => {
   try {
@@ -312,7 +351,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('sendMessage', (message) => {
+  socket.on('sendMessage', async (message) => {
     const { text, sender, chatroomId } = message;
     console.log(`Message received from ${sender}: ${text}`);
 
@@ -326,6 +365,15 @@ io.on('connection', (socket) => {
 
     // Emit the message to the room
     io.to(chatroomId).emit('message', message);
+
+    // Save message to MongoDB
+    try {
+      const newMessage = new Message(message);
+      await newMessage.save();
+      console.log('Message saved to MongoDB');
+    } catch (error) {
+      console.error('Error saving message to MongoDB:', error);
+    }
   });
 
   socket.on('sendSystemMessage', (message) => {
@@ -404,7 +452,6 @@ io.on('connection', (socket) => {
     io.to(chatroomId).emit('message', systemMessage);
   });
 
-  
   socket.on('userReturned', ({ chatroomId, name }) => {
     const systemMessage = {
       text: `${name} has returned.`,
@@ -427,6 +474,22 @@ io.on('connection', (socket) => {
 
   socket.on('disconnect', () => {
     console.log('Client disconnected');
+  });
+
+  // WebRTC signaling events
+  socket.on('webrtc-offer', ({ offer, chatroomId }) => {
+    console.log('Received WebRTC offer:', offer);
+    socket.broadcast.to(chatroomId).emit('webrtc-offer', offer);
+  });
+
+  socket.on('webrtc-answer', ({ answer, chatroomId }) => {
+    console.log('Received WebRTC answer:', answer);
+    socket.broadcast.to(chatroomId).emit('webrtc-answer', answer);
+  });
+
+  socket.on('webrtc-ice-candidate', ({ candidate, chatroomId }) => {
+    console.log('Received ICE candidate:', candidate);
+    socket.broadcast.to(chatroomId).emit('webrtc-ice-candidate', candidate);
   });
 });
 
