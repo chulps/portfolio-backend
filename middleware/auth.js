@@ -8,10 +8,14 @@ module.exports = function (req, res, next) {
   }
 
   try {
-    const decoded = jwt.verify(token.split(' ')[1], process.env.JWT_SECRET);
+    const tokenWithoutBearer = token.split(' ')[1];
+    const decoded = jwt.verify(tokenWithoutBearer, process.env.JWT_SECRET);
+    console.log("Decoded token:", decoded);
     req.user = decoded.user;
+    console.log("Decoded user from token:", req.user);
     next();
   } catch (err) {
+    console.error("Token verification failed:", err);
     res.status(401).json({ msg: 'Token is not valid' });
   }
 };

@@ -1,8 +1,9 @@
 const mongoose = require('mongoose');
+const Schema = mongoose.Schema;
 
-const ProfileSchema = new mongoose.Schema({
+const ProfileSchema = new Schema({
   userId: {
-    type: mongoose.Schema.Types.ObjectId,
+    type: Schema.Types.ObjectId,
     ref: 'User',
     required: true,
   },
@@ -11,6 +12,9 @@ const ProfileSchema = new mongoose.Schema({
     required: true,
   },
   bio: {
+    type: String,
+  },
+  profileImage: {
     type: String,
   },
 });

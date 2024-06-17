@@ -26,7 +26,7 @@ const io = socketIo(server, {
       "http://192.168.40.215:3000",
       "http://172.20.10.7:3000", // for testing in dev only
     ],
-    methods: ["GET", "POST"],
+    methods: ["GET", "POST", "PUT", "DELETE"],
   },
 });
 
@@ -35,6 +35,9 @@ const uploadsDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir);
 }
+
+// Serve static files from the uploads directory
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // CORS configuration
 app.use(
@@ -45,7 +48,7 @@ app.use(
       "http://192.168.40.215:3000",
       "http://172.20.10.7:3000", // for testing in dev only
     ],
-    methods: ["GET", "POST"],
+    methods: ["GET", "POST", "PUT", "DELETE"],
   })
 );
 
@@ -114,6 +117,10 @@ app.use('/api/friends', friendRoutes);
 // Chatroom routes
 const chatroomRoutes = require('./routes/chatroom');
 app.use('/api/chatrooms', chatroomRoutes);
+
+// Settings routes
+const settingsRoutes = require('./routes/settings');
+app.use('/api/settings', settingsRoutes);
 
 // Protected route example
 app.get('/api/protected', auth, (req, res) => {
