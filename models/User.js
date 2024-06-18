@@ -1,17 +1,5 @@
 const mongoose = require('mongoose');
 
-const FriendRequestSchema = new mongoose.Schema({
-  sender: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-  },
-  status: {
-    type: String,
-    enum: ['pending', 'accepted', 'rejected'],
-    default: 'pending',
-  },
-});
-
 const UserSchema = new mongoose.Schema({
   username: {
     type: String,
@@ -33,13 +21,30 @@ const UserSchema = new mongoose.Schema({
   resetPasswordExpires: {
     type: Date,
   },
-  friends: [
-    {
+  friends: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }],
+  friendRequests: [{
+    sender: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
+      ref: 'User'
     },
-  ],
-  friendRequests: [FriendRequestSchema],
+    status: {
+      type: String,
+      enum: ['pending', 'accepted', 'rejected'],
+      default: 'pending'
+    }
+  }],
+  bio: {
+    type: String,
+  },
+  name: {
+    type: String,
+  },
+  profileImage: {
+    type: String,
+  },
 });
 
 module.exports = mongoose.model('User', UserSchema);

@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
 const multer = require('multer');
-const Profile = require('../models/Profile');
+const User = require('../models/User');
 
 // Multer setup for file uploads
 const storage = multer.diskStorage({
@@ -19,13 +19,12 @@ const upload = multer({ storage });
 router.post('/', auth, async (req, res) => {
   const { name, bio } = req.body;
   try {
-    console.log("Request user:", req.user); // Add this line to log the user from the request
-    const profile = await Profile.findOneAndUpdate(
-      { userId: req.user.id },
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
       { name, bio },
-      { new: true, upsert: true }
+      { new: true }
     );
-    res.status(201).json(profile);
+    res.status(201).json(user);
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');
@@ -35,23 +34,37 @@ router.post('/', auth, async (req, res) => {
 // Upload profile image
 router.post('/upload-image', auth, upload.single('profileImage'), async (req, res) => {
   try {
-    const profile = await Profile.findOneAndUpdate(
-      { userId: req.user.id },
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
       { profileImage: req.file.path },
       { new: true }
     );
-    res.status(201).json(profile);
+    res.status(201).json(user);
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');
   }
 });
 
-// Get profile
+// Get current user's profile
 router.get('/', auth, async (req, res) => {
   try {
-    const profile = await Profile.findOne({ userId: req.user.id });
-    res.json(profile);
+    const user = await User.findById(req.user.id);
+    res.json(user);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// Get profile by user ID
+router.get('/:userId', auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.params.userId);
+    if (!user) {
+      return res.status(404).json({ msg: 'User not found' });
+    }
+    res.json(user);
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');

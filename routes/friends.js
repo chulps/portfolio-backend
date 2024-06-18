@@ -5,17 +5,20 @@ const User = require('../models/User');
 
 // Get friends and friend requests
 router.get('/', auth, async (req, res) => {
-  try {
-    const user = await User.findById(req.user.id).populate('friends friendRequests.sender', 'username email');
-    res.json({
-      friends: user.friends,
-      friendRequests: user.friendRequests,
-    });
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server Error');
-  }
-});
+    try {
+      const user = await User.findById(req.user.id)
+        .populate('friends', 'username email profileImage')  // Add profileImage here
+        .populate('friendRequests.sender', 'username email profileImage');  // Add profileImage here
+      res.json({
+        friends: user.friends,
+        friendRequests: user.friendRequests,
+      });
+    } catch (err) {
+      console.error(err.message);
+      res.status(500).send('Server Error');
+    }
+  });
+  
 
 // Send a friend request
 router.post('/send-request', auth, async (req, res) => {

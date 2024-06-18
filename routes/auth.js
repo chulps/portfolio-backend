@@ -59,47 +59,59 @@ router.post('/forgot-password', async (req, res) => {
 
 
 // Register a new user
+// Register a new user
 router.post('/register', async (req, res) => {
     const { username, email, password } = req.body;
-
+  
     try {
-        let user = await User.findOne({ email });
-
-        if (user) {
-            return res.status(400).json({ msg: 'User already exists' });
+      // Validate email
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        return res.status(400).json({ msg: 'Invalid email format' });
+      }
+  
+      // Validate password strength
+      if (password.length < 8) {
+        return res.status(400).json({ msg: 'Password must be at least 8 characters long' });
+      }
+  
+      let user = await User.findOne({ email });
+      if (user) {
+        return res.status(400).json({ msg: 'User already exists' });
+      }
+  
+      user = new User({
+        username,
+        email,
+        password,
+      });
+  
+      const salt = await bcrypt.genSalt(10);
+      user.password = await bcrypt.hash(password, salt);
+  
+      await user.save();
+  
+      const payload = {
+        user: {
+          id: user.id,
+        },
+      };
+  
+      jwt.sign(
+        payload,
+        process.env.JWT_SECRET,
+        { expiresIn: '5 days' },
+        (err, token) => {
+          if (err) throw err;
+          res.json({ token });
         }
-
-        user = new User({
-            username,
-            email,
-            password
-        });
-
-        const salt = await bcrypt.genSalt(10);
-        user.password = await bcrypt.hash(password, salt);
-
-        await user.save();
-
-        const payload = {
-            user: {
-                id: user.id
-            }
-        };
-
-        jwt.sign(
-            payload,
-            process.env.JWT_SECRET,
-            { expiresIn: '5 days' },
-            (err, token) => {
-                if (err) throw err;
-                res.json({ token });
-            }
-        );
+      );
     } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Server Error');
+      console.error(err.message);
+      res.status(500).send('Server Error');
     }
-});
+  });
+  
 
 // Login a user
 router.post('/login', async (req, res) => {
@@ -130,6 +142,8 @@ router.post('/login', async (req, res) => {
             }
         };
 
+        const isProfileComplete = !!(user.name && user.bio && user.profileImage);
+
         jwt.sign(
             payload,
             process.env.JWT_SECRET,
@@ -140,7 +154,7 @@ router.post('/login', async (req, res) => {
                     throw err;
                 }
                 console.log('Generated token:', token);
-                res.json({ token });
+                res.json({ token, isProfileComplete });
             }
         );
     } catch (err) {
@@ -148,6 +162,7 @@ router.post('/login', async (req, res) => {
         res.status(500).send('Server Error');
     }
 });
+
 
 
 
