@@ -126,6 +126,10 @@ app.use('/api/settings', settingsRoutes);
 const searchRoutes = require('./routes/search');
 app.use('/api/search', searchRoutes);
 
+// Temporary chatroom routes
+const { router: temporaryChatroomsRouter, chatRooms } = require('./routes/temporaryChatrooms');
+app.use('/api/temporary-chatrooms', temporaryChatroomsRouter);
+
 // Protected route example
 app.get('/api/protected', auth, (req, res) => {
   res.send('This is a protected route');
