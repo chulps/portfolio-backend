@@ -86,16 +86,8 @@ mongoose.connect(process.env.MONGODB_URI).then(() => {
 });
 
 // MongoDB models
-const MessageSchema = new mongoose.Schema({
-  sender: String,
-  text: String,
-  language: String,
-  chatroomId: String,
-  timestamp: String,
-  type: String,
-});
-
-const Message = mongoose.model('Message', MessageSchema);
+const Chatroom = require('./models/Chatroom');
+const User = require('./models/User'); // Make sure to import your User model
 
 // API home route
 app.get('/', (req, res) => {
@@ -369,27 +361,58 @@ io.on('connection', (socket) => {
   socket.on('sendMessage', async (message) => {
     const { text, sender, chatroomId } = message;
     console.log(`Message received from ${sender}: ${text}`);
-
+  
     // Store the message in the chatroom's message history
     if (!chatRoomMessages[chatroomId]) {
       chatRoomMessages[chatroomId] = [];
     }
     chatRoomMessages[chatroomId].push(message);
-
+  
     console.log(`Message history for ${chatroomId}:`, chatRoomMessages[chatroomId]);
-
+  
     // Emit the message to the room
     io.to(chatroomId).emit('message', message);
-
+  
     // Save message to MongoDB
-    try {
-      const newMessage = new Message(message);
-      await newMessage.save();
-      console.log('Message saved to MongoDB');
-    } catch (error) {
-      console.error('Error saving message to MongoDB:', error);
+    if (message.type === 'user') {
+      try {
+        console.log('Attempting to find chatroom...');
+        const chatroom = await Chatroom.findById(chatroomId);
+        if (!chatroom) {
+          throw new Error('Chatroom not found');
+        }
+  
+        console.log('Chatroom found:', chatroom);
+  
+        console.log('Received sender:', sender);
+        console.log('Sender data type:', typeof sender);
+        console.log('Sender length:', sender.length);
+  
+        const user = await User.findOne({ username: sender });
+        if (!user) {
+          throw new Error('User not found');
+        }
+  
+        const newMessage = {
+          sender: user._id,
+          username: user.username,
+          name: user.name,
+          email: user.email,
+          text: text,
+          timestamp: new Date(),
+        };
+  
+        console.log('New message to be added:', newMessage);
+  
+        chatroom.messages.push(newMessage);
+        await chatroom.save();
+        console.log('Message saved to chatroom in MongoDB');
+      } catch (error) {
+        console.error('Error saving message to MongoDB:', error);
+      }
     }
   });
+  
 
   socket.on('sendSystemMessage', (message) => {
     const { text, chatroomId } = message;

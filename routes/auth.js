@@ -57,61 +57,61 @@ router.post('/forgot-password', async (req, res) => {
     }
 });
 
-
-// Register a new user
 // Register a new user
 router.post('/register', async (req, res) => {
     const { username, email, password } = req.body;
   
     try {
-      // Validate email
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(email)) {
-        return res.status(400).json({ msg: 'Invalid email format' });
-      }
-  
-      // Validate password strength
-      if (password.length < 8) {
-        return res.status(400).json({ msg: 'Password must be at least 8 characters long' });
-      }
-  
-      let user = await User.findOne({ email });
-      if (user) {
-        return res.status(400).json({ msg: 'User already exists' });
-      }
-  
-      user = new User({
-        username,
-        email,
-        password,
-      });
-  
-      const salt = await bcrypt.genSalt(10);
-      user.password = await bcrypt.hash(password, salt);
-  
-      await user.save();
-  
-      const payload = {
-        user: {
-          id: user.id,
-        },
-      };
-  
-      jwt.sign(
-        payload,
-        process.env.JWT_SECRET,
-        { expiresIn: '5 days' },
-        (err, token) => {
-          if (err) throw err;
-          res.json({ token });
+        // Validate email
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return res.status(400).json({ msg: 'Invalid email format' });
         }
-      );
-    } catch (err) {
-      console.error(err.message);
-      res.status(500).send('Server Error');
-    }
-  });
   
+        // Validate password strength
+        if (password.length < 8) {
+            return res.status(400).json({ msg: 'Password must be at least 8 characters long' });
+        }
+  
+        let user = await User.findOne({ email });
+        if (user) {
+            return res.status(400).json({ msg: 'User already exists' });
+        }
+  
+        user = new User({
+            username,
+            email,
+            password,
+        });
+  
+        const salt = await bcrypt.genSalt(10);
+        user.password = await bcrypt.hash(password, salt);
+  
+        await user.save();
+  
+        const payload = {
+            user: {
+                id: user.id,
+                username: user.username,
+                name: user.name,
+                profileImage: user.profileImage,
+            },
+        };
+  
+        jwt.sign(
+            payload,
+            process.env.JWT_SECRET,
+            { expiresIn: '5 days' },
+            (err, token) => {
+                if (err) throw err;
+                res.json({ token });
+            }
+        );
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
 
 // Login a user
 router.post('/login', async (req, res) => {
@@ -138,8 +138,11 @@ router.post('/login', async (req, res) => {
 
         const payload = {
             user: {
-                id: user.id
-            }
+                id: user.id,
+                username: user.username,
+                name: user.name,
+                profileImage: user.profileImage,
+            },
         };
 
         const isProfileComplete = !!(user.name && user.bio && user.profileImage);
@@ -162,9 +165,6 @@ router.post('/login', async (req, res) => {
         res.status(500).send('Server Error');
     }
 });
-
-
-
 
 // Reset password route
 router.post('/reset-password/:token', async (req, res) => {

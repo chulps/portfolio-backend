@@ -1,29 +1,49 @@
 const mongoose = require('mongoose');
-const Schema = mongoose.Schema;
 
-const ChatroomSchema = new Schema({
+const messageSchema = new mongoose.Schema({
+  sender: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true,
+  },
+  username: {
+    type: String,
+    required: true,
+  },
   name: {
     type: String,
     required: true,
-    unique: true
   },
-  originator: {
-    type: Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
+  email: {
+    type: String,
+    required: true,
   },
-  members: [{
-    type: Schema.Types.ObjectId,
-    ref: 'User'
-  }],
-  isPublic: {
-    type: Boolean,
-    default: false
+  text: {
+    type: String,
+    required: true,
   },
-  createdAt: {
+  timestamp: {
     type: Date,
-    default: Date.now
-  }
+    default: Date.now,
+  },
 });
 
-module.exports = mongoose.model('Chatroom', ChatroomSchema);
+const chatroomSchema = new mongoose.Schema({
+  name: String,
+  originator: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+  },
+  members: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+  }],
+  isPublic: Boolean,
+  messages: [messageSchema],
+}, {
+  timestamps: true,
+});
+
+const Chatroom = mongoose.model('Chatroom', chatroomSchema);
+
+module.exports = Chatroom;
