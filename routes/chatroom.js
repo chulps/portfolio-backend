@@ -80,4 +80,25 @@ router.post('/leave', auth, async (req, res) => {
   }
 });
 
+// Update chatroom public status
+router.put('/:id/public', auth, async (req, res) => {
+  try {
+    const chatroom = await Chatroom.findById(req.params.id);
+    if (!chatroom) {
+      return res.status(404).json({ message: 'Chatroom not found' });
+    }
+
+    // Check if the user is the originator
+    if (chatroom.originator.toString() !== req.user.id) {
+      return res.status(403).json({ message: 'You are not the originator of this chatroom' });
+    }
+
+    chatroom.isPublic = req.body.isPublic;
+    await chatroom.save();
+    res.json(chatroom);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 module.exports = router;
