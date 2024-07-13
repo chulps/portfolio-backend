@@ -14,6 +14,19 @@ router.get('/', auth, async (req, res) => {
   }
 });
 
+// Get chatroom by ID
+router.get('/:id', auth, async (req, res) => {
+  try {
+    const chatroom = await Chatroom.findById(req.params.id).populate('originator');
+    if (!chatroom) {
+      return res.status(404).json({ message: 'Chatroom not found' });
+    }
+    res.json(chatroom);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // Create a new chatroom
 router.post('/', auth, async (req, res) => {
   const { name } = req.body;
@@ -66,6 +79,5 @@ router.post('/leave', auth, async (req, res) => {
     res.status(500).send('Server Error');
   }
 });
-
 
 module.exports = router;
