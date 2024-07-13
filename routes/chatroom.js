@@ -3,10 +3,11 @@ const router = express.Router();
 const auth = require('../middleware/auth');
 const Chatroom = require('../models/Chatroom');
 
-// Get all chatrooms
+// Get chatrooms where the authenticated user is a member
 router.get('/', auth, async (req, res) => {
   try {
-    const chatrooms = await Chatroom.find();
+    const userId = req.user.id;
+    const chatrooms = await Chatroom.find({ members: userId });
     res.json(chatrooms);
   } catch (err) {
     console.error(err);

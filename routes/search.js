@@ -12,7 +12,7 @@ router.get('/', async (req, res) => {
       $or: [
         { username: { $regex: query, $options: 'i' } },
         { email: { $regex: query, $options: 'i' } },
-        { name: { $regex: query, $options: 'i' } }, // Added name search
+        { name: { $regex: query, $options: 'i' } },
       ],
     }).select('username email profileImage name');
 
