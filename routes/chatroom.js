@@ -81,6 +81,19 @@ router.post('/leave', auth, async (req, res) => {
   }
 });
 
+// Get members of a chatroom by chatroom ID
+router.get('/:id/members', auth, async (req, res) => {
+  try {
+    const chatroom = await Chatroom.findById(req.params.id).populate('members', 'username name profileImage');
+    if (!chatroom) {
+      return res.status(404).json({ message: 'Chatroom not found' });
+    }
+    res.json({ members: chatroom.members });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // Update chatroom public status
 router.put('/:id/public', auth, async (req, res) => {
   try {

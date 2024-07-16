@@ -348,7 +348,7 @@ const chatRoomTimers = {};
 io.on('connection', (socket) => {
   console.log('New client connected');
 
-  socket.on('joinRoom', ({ chatroomId, name, language }) => {
+  socket.on('joinRoom', async ({ chatroomId, name, language }) => {
     console.log(`Received joinRoom event for chatroom: ${chatroomId}, user: ${name}, language: ${language}`);
     socket.join(chatroomId);
     console.log(`${name} joined chatroom: ${chatroomId}`);
@@ -356,6 +356,29 @@ io.on('connection', (socket) => {
     // Send the message history for the chatroom
     if (chatRoomMessages[chatroomId]) {
       socket.emit('messageHistory', chatRoomMessages[chatroomId]);
+    }
+
+    // Add user to chatroom members
+    try {
+      const user = await User.findOne({ username: name });
+      if (!user) {
+        throw new Error('User not found');
+      }
+      
+      const chatroom = await Chatroom.findById(chatroomId);
+      if (!chatroom) {
+        throw new Error('Chatroom not found');
+      }
+
+      if (!chatroom.members.includes(user._id)) {
+        chatroom.members.push(user._id);
+        await chatroom.save();
+      }
+
+      // Update the members count
+      io.to(chatroomId).emit('updateMembersCount', chatroom.members.length);
+    } catch (error) {
+      console.error('Error adding user to chatroom members:', error);
     }
   });
 
