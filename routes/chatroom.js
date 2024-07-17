@@ -1,5 +1,3 @@
-// routes/chatroom.js
-
 const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
@@ -137,6 +135,39 @@ router.post('/:id/mark-read', auth, async (req, res) => {
     res.status(200).json({ message: 'Messages marked as read' });
   } catch (error) {
     console.error("Error marking messages as read:", error);
+    res.status(500).send('Server Error');
+  }
+});
+
+// Send a message in a chatroom
+router.post('/:id/message', auth, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const chatroomId = req.params.id;
+    const { text, language, type } = req.body;
+
+    const chatroom = await Chatroom.findById(chatroomId);
+    if (!chatroom) {
+      return res.status(404).json({ message: 'Chatroom not found' });
+    }
+
+    const message = {
+      sender: userId,
+      username: req.user.username,
+      name: req.user.name,
+      email: req.user.email,
+      text,
+      language,
+      type,
+      readBy: [userId] // Mark message as read by the sender
+    };
+
+    chatroom.messages.push(message);
+    await chatroom.save();
+
+    res.status(200).json({ message: 'Message sent', chatroom });
+  } catch (error) {
+    console.error("Error sending message:", error);
     res.status(500).send('Server Error');
   }
 });
