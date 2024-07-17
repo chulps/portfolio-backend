@@ -45,6 +45,14 @@ const UserSchema = new mongoose.Schema({
   profileImage: {
     type: String,
   },
+  contacts: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }],
+  blocked: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }],
 });
 
 module.exports = mongoose.model('User', UserSchema);
