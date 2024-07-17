@@ -1,3 +1,5 @@
+// routes/chatroom.js
+
 const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
@@ -8,7 +10,16 @@ router.get('/', auth, async (req, res) => {
   try {
     const userId = req.user.id;
     const chatrooms = await Chatroom.find({ members: userId });
-    res.json(chatrooms);
+    const chatroomsWithLatestMessages = chatrooms.map((chatroom) => {
+      const latestMessage = chatroom.getLatestMessage();
+      const hasUnreadMessages = chatroom.hasUnreadMessages(userId);
+      return {
+        ...chatroom.toObject(),
+        latestMessage,
+        hasUnreadMessages,
+      };
+    });
+    res.json(chatroomsWithLatestMessages);
   } catch (err) {
     console.error(err);
     res.status(500).send('Server Error');
@@ -18,11 +29,41 @@ router.get('/', auth, async (req, res) => {
 // Get chatroom by ID
 router.get('/:id', auth, async (req, res) => {
   try {
-    const chatroom = await Chatroom.findById(req.params.id).populate('originator');
+    const chatroom = await Chatroom.findById(req.params.id)
+      .populate('originator')
+      .populate('messages.sender', 'username'); // populate sender info
+
     if (!chatroom) {
       return res.status(404).json({ message: 'Chatroom not found' });
     }
+
     res.json(chatroom);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Get members of a chatroom by chatroom ID
+router.get('/:id/members', auth, async (req, res) => {
+  try {
+    const chatroom = await Chatroom.findById(req.params.id).populate('members', 'username name profileImage');
+    if (!chatroom) {
+      return res.status(404).json({ message: 'Chatroom not found' });
+    }
+    res.json({ members: chatroom.members });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Get all messages for a chatroom by ID
+router.get('/:id/messages', auth, async (req, res) => {
+  try {
+    const chatroom = await Chatroom.findById(req.params.id).populate('messages.sender');
+    if (!chatroom) {
+      return res.status(404).json({ message: 'Chatroom not found' });
+    }
+    res.json(chatroom.messages);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -58,20 +99,14 @@ router.post('/leave', auth, async (req, res) => {
       return res.status(404).json({ msg: 'Chatroom not found' });
     }
 
-    console.log("Chatroom before leaving:", chatroom);
-
     // Remove the user from the members list
     chatroom.members = chatroom.members.filter(member => member.toString() !== req.user.id);
-
-    console.log("Chatroom after removing user:", chatroom);
 
     if (chatroom.members.length === 0) {
       // Delete the chatroom if there are no members left
       await Chatroom.deleteOne({ _id: chatroom._id });
-      console.log("Chatroom deleted as no members left:", chatroom._id);
     } else {
       await chatroom.save();
-      console.log("Chatroom updated after user left:", chatroom);
     }
 
     res.json({ msg: 'Successfully left the chatroom' });
@@ -81,16 +116,28 @@ router.post('/leave', auth, async (req, res) => {
   }
 });
 
-// Get members of a chatroom by chatroom ID
-router.get('/:id/members', auth, async (req, res) => {
+// Mark messages as read in a chatroom
+router.post('/:id/mark-read', auth, async (req, res) => {
   try {
-    const chatroom = await Chatroom.findById(req.params.id).populate('members', 'username name profileImage');
+    const userId = req.user.id;
+    const chatroomId = req.params.id;
+
+    const chatroom = await Chatroom.findById(chatroomId);
     if (!chatroom) {
       return res.status(404).json({ message: 'Chatroom not found' });
     }
-    res.json({ members: chatroom.members });
+
+    chatroom.messages.forEach(message => {
+      if (!message.readBy.includes(userId)) {
+        message.readBy.push(userId);
+      }
+    });
+
+    await chatroom.save();
+    res.status(200).json({ message: 'Messages marked as read' });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error("Error marking messages as read:", error);
+    res.status(500).send('Server Error');
   }
 });
 

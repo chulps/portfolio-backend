@@ -1,4 +1,3 @@
-// chatroom.js (model)
 const mongoose = require('mongoose');
 
 const messageSchema = new mongoose.Schema({
@@ -27,6 +26,10 @@ const messageSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+  readBy: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+  }],
 });
 
 const chatroomSchema = new mongoose.Schema({
@@ -44,6 +47,17 @@ const chatroomSchema = new mongoose.Schema({
 }, {
   timestamps: true,
 });
+
+chatroomSchema.methods.getLatestMessage = function () {
+  if (this.messages.length > 0) {
+    return this.messages[this.messages.length - 1];
+  }
+  return null;
+};
+
+chatroomSchema.methods.hasUnreadMessages = function (userId) {
+  return this.messages.some(message => !message.readBy.includes(userId));
+};
 
 const Chatroom = mongoose.model('Chatroom', chatroomSchema);
 
