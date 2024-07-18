@@ -71,15 +71,27 @@ router.get('/:userId', auth, async (req, res) => {
   }
 });
 
-// Add a contact
+// Add a contact (send friend request)
 router.post('/:userId/add-contact', auth, async (req, res) => {
   try {
-    const user = await User.findByIdAndUpdate(
-      req.user.id,
-      { $addToSet: { contacts: req.params.userId } },
-      { new: true }
-    ).populate('contacts', 'username name profileImage');
-    res.json(user);
+    const sender = await User.findById(req.user.id);
+    const recipient = await User.findById(req.params.userId);
+
+    if (!recipient) {
+      return res.status(404).json({ msg: 'User not found' });
+    }
+
+    // Check if friend request already exists
+    const existingRequest = recipient.friendRequests.find(request => request.sender.toString() === sender._id.toString());
+
+    if (existingRequest) {
+      return res.status(400).json({ msg: 'Friend request already sent' });
+    }
+
+    recipient.friendRequests.push({ sender: sender._id });
+    await recipient.save();
+
+    res.json({ msg: 'Friend request sent' });
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');
@@ -89,12 +101,22 @@ router.post('/:userId/add-contact', auth, async (req, res) => {
 // Remove a contact
 router.post('/:userId/remove-contact', auth, async (req, res) => {
   try {
-    const user = await User.findByIdAndUpdate(
-      req.user.id,
-      { $pull: { contacts: req.params.userId } },
-      { new: true }
-    ).populate('contacts', 'username name profileImage');
-    res.json(user);
+    const user = await User.findById(req.user.id);
+    const contact = await User.findById(req.params.userId);
+
+    if (!user || !contact) {
+      return res.status(404).json({ msg: 'User not found' });
+    }
+
+    // Remove the contact from the user's friends list
+    user.friends = user.friends.filter(friendId => friendId.toString() !== contact._id.toString());
+    await user.save();
+
+    // Remove the user from the contact's friends list
+    contact.friends = contact.friends.filter(friendId => friendId.toString() !== user._id.toString());
+    await contact.save();
+
+    res.json({ msg: 'Contact removed', userFriends: user.friends, contactFriends: contact.friends });
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');
