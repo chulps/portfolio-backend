@@ -71,6 +71,17 @@ router.get('/:userId', auth, async (req, res) => {
   }
 });
 
+// Get current user's contacts
+router.get('/contacts', auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).populate('contacts', 'username name profileImage');
+    res.json({ contacts: user.contacts });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
 // Add a contact (send friend request)
 router.post('/:userId/add-contact', auth, async (req, res) => {
   try {

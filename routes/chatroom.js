@@ -172,6 +172,30 @@ router.post('/:id/message', auth, async (req, res) => {
   }
 });
 
+// In your chatroom routes file (e.g., chatroom.js)
+router.post('/:chatroomId/add-member', auth, async (req, res) => {
+  const { chatroomId } = req.params;
+  const { memberId } = req.body;
+
+  try {
+    const chatroom = await Chatroom.findById(chatroomId);
+    if (!chatroom) {
+      return res.status(404).json({ msg: 'Chatroom not found' });
+    }
+
+    if (!chatroom.members.includes(memberId)) {
+      chatroom.members.push(memberId);
+      await chatroom.save();
+    }
+
+    res.json({ members: chatroom.members });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+
 // Update chatroom public status
 router.put('/:id/public', auth, async (req, res) => {
   try {
