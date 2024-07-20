@@ -97,19 +97,8 @@ router.post('/leave', auth, async (req, res) => {
       return res.status(404).json({ msg: 'Chatroom not found' });
     }
 
-    // Check if req.user.id exists and is a valid object ID
-    if (!req.user.id) {
-      return res.status(400).json({ msg: 'Invalid user ID' });
-    }
-
     // Remove the user from the members list
-    chatroom.members = chatroom.members.filter(member => {
-      if (!member) {
-        console.error("Null member in chatroom: ", chatroom);
-        return false;
-      }
-      return member.toString() !== req.user.id;
-    });
+    chatroom.members = chatroom.members.filter(member => member.toString() !== req.user.id);
 
     if (chatroom.members.length === 0) {
       // Delete the chatroom if there are no members left
@@ -124,6 +113,7 @@ router.post('/leave', auth, async (req, res) => {
     res.status(500).send('Server Error');
   }
 });
+
 
 // Mark messages as read in a chatroom
 router.post('/:id/mark-read', auth, async (req, res) => {
