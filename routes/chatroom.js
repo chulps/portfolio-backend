@@ -114,6 +114,29 @@ router.post('/leave', auth, async (req, res) => {
   }
 });
 
+// Delete a chatroom
+router.delete('/:id', auth, async (req, res) => {
+  try {
+    const chatroom = await Chatroom.findById(req.params.id);
+
+    if (!chatroom) {
+      return res.status(404).json({ msg: 'Chatroom not found' });
+    }
+
+    // Only the originator can delete the chatroom
+    if (chatroom.originator.toString() !== req.user.id) {
+      return res.status(403).json({ msg: 'User not authorized' });
+    }
+
+    await Chatroom.deleteOne({ _id: req.params.id });
+
+    res.json({ msg: 'Chatroom removed' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
 
 // Mark messages as read in a chatroom
 router.post('/:id/mark-read', auth, async (req, res) => {
