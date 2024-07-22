@@ -60,13 +60,16 @@ router.get('/', auth, async (req, res) => {
 // Get profile by user ID
 router.get('/:userId', auth, async (req, res) => {
   try {
-    const user = await User.findById(req.params.userId).populate('contacts', 'username name profileImage').populate('blocked', 'username name profileImage');
+    console.log(`Fetching profile for user ID: ${req.params.userId}`);
+    const user = await User.findById(req.params.userId).populate('friends', 'username name profileImage').populate('blocked', 'username name profileImage');
     if (!user) {
+      console.log('User not found');
       return res.status(404).json({ msg: 'User not found' });
     }
+    console.log('User found:', user);
     res.json(user);
   } catch (err) {
-    console.error(err.message);
+    console.error('Error fetching user profile:', err.message);
     res.status(500).send('Server Error');
   }
 });
