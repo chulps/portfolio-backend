@@ -60,35 +60,40 @@ router.post('/forgot-password', async (req, res) => {
 // Register a new user
 router.post('/register', async (req, res) => {
     const { username, email, password } = req.body;
-  
+
     try {
         // Validate email
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email)) {
             return res.status(400).json({ msg: 'Invalid email format' });
         }
-  
+
         // Validate password strength
         if (password.length < 8) {
             return res.status(400).json({ msg: 'Password must be at least 8 characters long' });
         }
-  
+
         let user = await User.findOne({ email });
         if (user) {
-            return res.status(400).json({ msg: 'User already exists' });
+            return res.status(400).json({ msg: 'Email already exists' });
         }
-  
+
+        user = await User.findOne({ username });
+        if (user) {
+            return res.status(400).json({ msg: 'Username already exists' });
+        }
+
         user = new User({
             username,
             email,
             password,
         });
-  
+
         const salt = await bcrypt.genSalt(10);
         user.password = await bcrypt.hash(password, salt);
-  
+
         await user.save();
-  
+
         const payload = {
             user: {
                 id: user.id,
@@ -97,7 +102,7 @@ router.post('/register', async (req, res) => {
                 profileImage: user.profileImage,
             },
         };
-  
+
         jwt.sign(
             payload,
             process.env.JWT_SECRET,
@@ -112,6 +117,8 @@ router.post('/register', async (req, res) => {
         res.status(500).send('Server Error');
     }
 });
+
+
 
 // Login a user
 router.post('/login', async (req, res) => {
@@ -165,6 +172,38 @@ router.post('/login', async (req, res) => {
         res.status(500).send('Server Error');
     }
 });
+
+// Check if username exists
+router.post('/check-username', async (req, res) => {
+    const { username } = req.body;
+    try {
+      const user = await User.findOne({ username });
+      if (user) {
+        return res.json({ exists: true });
+      } else {
+        return res.json({ exists: false });
+      }
+    } catch (err) {
+      console.error(err.message);
+      res.status(500).send('Server Error');
+    }
+  });
+  
+  // Check if email exists
+  router.post('/check-email', async (req, res) => {
+    const { email } = req.body;
+    try {
+      const user = await User.findOne({ email });
+      if (user) {
+        return res.json({ exists: true });
+      } else {
+        return res.json({ exists: false });
+      }
+    } catch (err) {
+      console.error(err.message);
+      res.status(500).send('Server Error');
+    }
+  });
 
 // Reset password route
 router.post('/reset-password/:token', async (req, res) => {
