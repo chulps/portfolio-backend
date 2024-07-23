@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
 const Chatroom = require('../models/Chatroom');
+const User = require('../models/User');
 
 // Get chatrooms where the authenticated user is a member
 router.get('/', auth, async (req, res) => {
@@ -87,6 +88,36 @@ router.post('/', auth, async (req, res) => {
   }
 });
 
+// Create or find a private chatroom
+router.post('/private', auth, async (req, res) => {
+  const { name, members } = req.body;
+  const userId = req.user.id;
+
+  try {
+    // Check if there's an existing private chatroom with these members
+    let chatroom = await Chatroom.findOne({
+      isPublic: false,
+      members: { $all: [userId, ...members], $size: members.length + 1 },
+    });
+
+    if (!chatroom) {
+      // If no such chatroom exists, create a new one
+      chatroom = new Chatroom({
+        name,
+        originator: userId,
+        members: [userId, ...members],
+        isPublic: false,
+      });
+      await chatroom.save();
+    }
+
+    res.status(201).json(chatroom);
+  } catch (error) {
+    console.error("Error creating or finding private chatroom:", error);
+    res.status(500).send("Server Error");
+  }
+});
+
 // Leave a chatroom
 router.post('/leave', auth, async (req, res) => {
   const { chatroomId } = req.body;
@@ -136,7 +167,6 @@ router.delete('/:id', auth, async (req, res) => {
     res.status(500).send('Server Error');
   }
 });
-
 
 // Mark messages as read in a chatroom
 router.post('/:id/mark-read', auth, async (req, res) => {
@@ -196,7 +226,7 @@ router.post('/:id/message', auth, async (req, res) => {
   }
 });
 
-// In your chatroom routes file (e.g., chatroom.js)
+// Add a member to a chatroom
 router.post('/:chatroomId/add-member', auth, async (req, res) => {
   const { chatroomId } = req.params;
   const { memberId } = req.body;
@@ -218,7 +248,6 @@ router.post('/:chatroomId/add-member', auth, async (req, res) => {
     res.status(500).send('Server Error');
   }
 });
-
 
 // Update chatroom public status
 router.put('/:id/public', auth, async (req, res) => {
