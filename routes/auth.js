@@ -58,8 +58,9 @@ router.post('/forgot-password', async (req, res) => {
 });
 
 // Register a new user
+// Register a new user
 router.post('/register', async (req, res) => {
-    const { username, email, password } = req.body;
+    const { username, email, password, profileImage } = req.body;
 
     try {
         // Validate email
@@ -87,6 +88,7 @@ router.post('/register', async (req, res) => {
             username,
             email,
             password,
+            profileImage: profileImage || null,  // Default to null if no profile image is provided
         });
 
         const salt = await bcrypt.genSalt(10);
@@ -117,8 +119,6 @@ router.post('/register', async (req, res) => {
         res.status(500).send('Server Error');
     }
 });
-
-
 
 // Login a user
 router.post('/login', async (req, res) => {
