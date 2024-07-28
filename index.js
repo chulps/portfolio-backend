@@ -110,6 +110,10 @@ app.use('/api/friends', friendRoutes);
 const chatroomRoutes = require('./routes/chatroom');
 app.use('/api/chatrooms', chatroomRoutes);
 
+// Notifications routes
+const notificationsRoutes = require('./routes/notifications');
+app.use('/api/notifications', notificationsRoutes);
+
 // Settings routes
 const settingsRoutes = require('./routes/settings');
 app.use('/api/settings', settingsRoutes);

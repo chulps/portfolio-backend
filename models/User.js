@@ -49,6 +49,25 @@ const UserSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
   }],
+  notifications: [{
+    message: String,
+    type: {
+      type: String,
+      enum: ['chatroom_invite', 'friend_request', 'other'],
+    },
+    chatroomId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Chatroom',
+    },
+    date: {
+      type: Date,
+      default: Date.now,
+    },
+    read: {
+      type: Boolean,
+      default: false,
+    }
+  }],
 });
 
 module.exports = mongoose.model('User', UserSchema);

@@ -226,7 +226,7 @@ router.post('/:id/message', auth, async (req, res) => {
   }
 });
 
-// Add a member to a chatroom
+// Add member to chatroom and send notification
 router.post('/:chatroomId/add-member', auth, async (req, res) => {
   const { chatroomId } = req.params;
   const { memberId } = req.body;
@@ -240,6 +240,17 @@ router.post('/:chatroomId/add-member', auth, async (req, res) => {
     if (!chatroom.members.includes(memberId)) {
       chatroom.members.push(memberId);
       await chatroom.save();
+
+      // Send notification to the added member
+      const user = await User.findById(memberId);
+      if (user) {
+        user.notifications.push({
+          message: `You have been added to chatroom ${chatroom.name}`,
+          type: 'chatroom_invite',
+          chatroomId: chatroomId,
+        });
+        await user.save();
+      }
     }
 
     res.json({ members: chatroom.members });
@@ -248,6 +259,7 @@ router.post('/:chatroomId/add-member', auth, async (req, res) => {
     res.status(500).send('Server Error');
   }
 });
+
 
 // Update chatroom public status
 router.put('/:id/public', auth, async (req, res) => {
