@@ -3,6 +3,7 @@ const router = express.Router();
 const auth = require('../middleware/auth');
 const Chatroom = require('../models/Chatroom');
 const User = require('../models/User');
+const { io } = require('../index');
 
 // Get chatrooms where the authenticated user is a member
 router.get('/', auth, async (req, res) => {
@@ -94,6 +95,8 @@ router.post('/private', auth, async (req, res) => {
   const userId = req.user.id;
 
   try {
+    console.log('Creating or finding private chatroom with:', { userId, name, members });
+
     // Check if there's an existing private chatroom with these members
     let chatroom = await Chatroom.findOne({
       isPublic: false,
@@ -109,6 +112,9 @@ router.post('/private', auth, async (req, res) => {
         isPublic: false,
       });
       await chatroom.save();
+      console.log('Created new chatroom:', chatroom);
+    } else {
+      console.log('Found existing chatroom:', chatroom);
     }
 
     res.status(201).json(chatroom);
@@ -117,6 +123,7 @@ router.post('/private', auth, async (req, res) => {
     res.status(500).send("Server Error");
   }
 });
+
 
 // Leave a chatroom
 router.post('/leave', auth, async (req, res) => {
@@ -244,12 +251,17 @@ router.post('/:chatroomId/add-member', auth, async (req, res) => {
       // Send notification to the added member
       const user = await User.findById(memberId);
       if (user) {
-        user.notifications.push({
-          message: `You have been added to chatroom ${chatroom.name}`,
+        const notification = {
+          message: `You have been added to chatroom "${chatroom.name}"`,
           type: 'chatroom_invite',
           chatroomId: chatroomId,
-        });
+          read: false,
+        };
+        user.notifications.push(notification);
         await user.save();
+
+        // Emit socket.io event for the new notification
+        io.to(memberId.toString()).emit('newNotification', notification);
       }
     }
 
