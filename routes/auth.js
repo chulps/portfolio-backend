@@ -58,67 +58,68 @@ router.post('/forgot-password', async (req, res) => {
 });
 
 // Register a new user
-// Register a new user
 router.post('/register', async (req, res) => {
-    const { username, email, password, profileImage } = req.body;
-
+    const { username, email, password } = req.body;
+  
+    console.log('Received registration data:', req.body);
+  
     try {
-        // Validate email
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
-            return res.status(400).json({ msg: 'Invalid email format' });
+      // Validate email
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        return res.status(400).json({ msg: 'Invalid email format' });
+      }
+  
+      // Validate password strength
+      if (password.length < 8) {
+        return res.status(400).json({ msg: 'Password must be at least 8 characters long' });
+      }
+  
+      let user = await User.findOne({ email });
+      if (user) {
+        return res.status(400).json({ msg: 'Email already exists' });
+      }
+  
+      user = await User.findOne({ username });
+      if (user) {
+        return res.status(400).json({ msg: 'Username already exists' });
+      }
+  
+      user = new User({
+        username,
+        email,
+        password,
+        profileImage: null,  // No profile image at this point
+      });
+  
+      const salt = await bcrypt.genSalt(10);
+      user.password = await bcrypt.hash(password, salt);
+  
+      await user.save();
+  
+      const payload = {
+        user: {
+          id: user.id,
+          username: user.username,
+          name: user.name,
+          profileImage: user.profileImage,
+        },
+      };
+  
+      jwt.sign(
+        payload,
+        process.env.JWT_SECRET,
+        { expiresIn: '5 days' },
+        (err, token) => {
+          if (err) throw err;
+          res.json({ token });
         }
-
-        // Validate password strength
-        if (password.length < 8) {
-            return res.status(400).json({ msg: 'Password must be at least 8 characters long' });
-        }
-
-        let user = await User.findOne({ email });
-        if (user) {
-            return res.status(400).json({ msg: 'Email already exists' });
-        }
-
-        user = await User.findOne({ username });
-        if (user) {
-            return res.status(400).json({ msg: 'Username already exists' });
-        }
-
-        user = new User({
-            username,
-            email,
-            password,
-            profileImage: profileImage || null,  // Default to null if no profile image is provided
-        });
-
-        const salt = await bcrypt.genSalt(10);
-        user.password = await bcrypt.hash(password, salt);
-
-        await user.save();
-
-        const payload = {
-            user: {
-                id: user.id,
-                username: user.username,
-                name: user.name,
-                profileImage: user.profileImage,
-            },
-        };
-
-        jwt.sign(
-            payload,
-            process.env.JWT_SECRET,
-            { expiresIn: '5 days' },
-            (err, token) => {
-                if (err) throw err;
-                res.json({ token });
-            }
-        );
+      );
     } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Server Error');
+      console.error(err.message);
+      res.status(500).send('Server Error');
     }
-});
+  });
 
 // Login a user
 router.post('/login', async (req, res) => {
