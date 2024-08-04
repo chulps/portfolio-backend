@@ -37,7 +37,10 @@ if (!fs.existsSync(uploadsDir)) {
 }
 
 // Serve static files from the uploads directory
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+app.use('/uploads', (req, res, next) => {
+  console.log('Static file request:', req.url);
+  next();
+}, express.static(path.join(__dirname, 'uploads')));
 
 // CORS configuration
 app.use(
@@ -73,10 +76,7 @@ const storage = multer.diskStorage({
     cb(null, "uploads/");
   },
   filename: (req, file, cb) => {
-    cb(
-      null,
-      `${file.fieldname}-${Date.now()}${path.extname(file.originalname)}`
-    );
+    cb(null, `${file.fieldname}-${Date.now()}${path.extname(file.originalname)}`);
   },
 });
 const upload = multer({ storage });
